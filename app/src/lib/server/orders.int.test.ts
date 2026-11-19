@@ -41,6 +41,7 @@ import {
 	orderItems,
 	orders,
 	payments,
+	productSizes,
 	products,
 	settings,
 	shipments,
@@ -1139,6 +1140,56 @@ describe('katalog & detail (SRS-F-005, TC-005-*)', () => {
 			pagination: { page: number };
 		};
 		expect(bad.pagination.page).toBe(1);
+	});
+
+	it('filter harga & ukuran: rentang, urutan terbalik, input rusak, ukuran habis, kombinasi', async () => {
+		db.insert(productSizes)
+			.values([
+				{ productId: kaosId, label: 'M', stock: 3 },
+				{ productId: kaosId, label: 'L', stock: 0 }, // habis → tidak boleh cocok
+				{ productId: hoodieId, label: 'M', stock: 2 },
+				{ productId: hoodieId, label: 'XL', stock: 5 }
+			])
+			.run();
+		type R = { items: { name: string }[]; sizeOptions: string[]; filters: Record<string, unknown> };
+		const names = async (qs: string) =>
+			((await katalog.load({ url: url(qs) } as never)) as R).items.map((i) => i.name).sort();
+		const ALL = ['Hoodie', 'Kaos Classic - L', 'Topi'];
+
+		expect(await names('')).toEqual(ALL);
+		expect(await names('?min=100000')).toEqual(['Hoodie', 'Kaos Classic - L']);
+		expect(await names('?max=100000')).toEqual(['Kaos Classic - L', 'Topi']);
+		expect(await names('?min=60000&max=200000')).toEqual(['Kaos Classic - L']);
+		expect(await names('?min=50000&max=50000')).toEqual(['Topi']); // batas inklusif
+
+		// min > max ditukar, bukan hasil kosong
+		expect(await names('?min=200000&max=60000')).toEqual(['Kaos Classic - L']);
+		// input rusak diabaikan (bukan error / bukan nol hasil)
+		expect(await names('?min=abc&max=-5')).toEqual(ALL);
+		expect(await names('?min=&max=')).toEqual(ALL);
+		expect(await names('?min=1e9&max=99999999999')).toEqual(ALL);
+		expect(await names("?min=1'%20OR%201=1--")).toEqual(ALL);
+
+		// ukuran: hanya yang stoknya ada; huruf kecil dinormalkan
+		expect(await names('?ukuran=M')).toEqual(['Hoodie', 'Kaos Classic - L']);
+		expect(await names('?ukuran=m')).toEqual(['Hoodie', 'Kaos Classic - L']);
+		expect(await names('?ukuran=L')).toEqual([]);
+		expect(await names('?ukuran=XL')).toEqual(['Hoodie']);
+		expect(await names('?ukuran=ZZ')).toEqual([]);
+		expect(await names('?ukuran=M&max=100000')).toEqual(['Kaos Classic - L']);
+		expect(await names('?ukuran=M&q=hood')).toEqual(['Hoodie']);
+
+		// total & halaman ikut terfilter; filter dikembalikan ke tampilan
+		const r = (await katalog.load({ url: url('?ukuran=M&min=1000') } as never)) as R & {
+			pagination: { totalItems: number };
+		};
+		expect(r.pagination.totalItems).toBe(2);
+		expect(r.filters).toMatchObject({ ukuran: 'M', min: 1000, max: null });
+
+		// pilihan ukuran: hanya yang ada stoknya, terurut; produk nonaktif tidak ikut
+		expect(((await katalog.load({ url: url() } as never)) as R).sizeOptions).toEqual(['M', 'XL']);
+		db.update(products).set({ isActive: false }).where(eq(products.id, hoodieId)).run();
+		expect(((await katalog.load({ url: url() } as never)) as R).sizeOptions).toEqual(['M']);
 	});
 
 	it('detail: slug tidak ada / nonaktif / terhapus → 404 (TC-005-08/09)', async () => {

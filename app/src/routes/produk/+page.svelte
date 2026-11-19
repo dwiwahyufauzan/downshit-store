@@ -14,22 +14,45 @@
 	let { data }: PageProps = $props();
 
 	/** Tautan kategori & filter yang mempertahankan parameter aktif */
-	function buildHref(opts: { kategori?: string; q?: string; urut?: string; page?: number }) {
+	function buildHref(opts: {
+		kategori?: string;
+		q?: string;
+		urut?: string;
+		/** null = hapus filter harga/ukuran tersebut */
+		min?: number | null;
+		max?: number | null;
+		ukuran?: string;
+		page?: number;
+	}) {
 		const k = opts.kategori !== undefined ? opts.kategori : data.filters.kategori;
 		const query = opts.q !== undefined ? opts.q : data.filters.q;
 		const sort = opts.urut !== undefined ? opts.urut : data.filters.urut;
+		const min = opts.min !== undefined ? opts.min : data.filters.min;
+		const max = opts.max !== undefined ? opts.max : data.filters.max;
+		const ukuran = opts.ukuran !== undefined ? opts.ukuran : data.filters.ukuran;
 		const parts: string[] = [];
 
 		if (k) parts.push(`kategori=${encodeURIComponent(k)}`);
 		if (query) parts.push(`q=${encodeURIComponent(query)}`);
 		if (sort && sort !== 'terbaru') parts.push(`urut=${encodeURIComponent(sort)}`);
+		if (min !== null) parts.push(`min=${min}`);
+		if (max !== null) parts.push(`max=${max}`);
+		if (ukuran) parts.push(`ukuran=${encodeURIComponent(ukuran)}`);
 		if (opts.page && opts.page > 1) parts.push(`page=${opts.page}`);
 
 		return parts.length ? `/produk?${parts.join('&')}` : '/produk';
 	}
 
 	const activeCategory = $derived(data.categories.find((c) => c.slug === data.filters.kategori));
-	const hasFilter = $derived(Boolean(data.filters.q || data.filters.kategori));
+	const hasPriceOrSize = $derived(
+		data.filters.min !== null || data.filters.max !== null || Boolean(data.filters.ukuran)
+	);
+	const hasFilter = $derived(Boolean(data.filters.q || data.filters.kategori || hasPriceOrSize));
+
+	// Ukuran yang dipilih di panel sebelum "Terapkan" ditekan (awalnya mengikuti URL)
+	let ukuranPick = $state<string | null>(null);
+	const ukuranSel = $derived(ukuranPick ?? data.filters.ukuran);
+	const rp = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
 </script>
 
 <svelte:head>
@@ -77,7 +100,7 @@
 				</nav>
 			{/if}
 
-			<form method="GET" class="flex flex-wrap items-center gap-2">
+			<form id="filter-form" method="GET" class="flex flex-wrap items-center gap-2">
 				{#if data.filters.kategori}
 					<input type="hidden" name="kategori" value={data.filters.kategori} />
 				{/if}
@@ -128,6 +151,86 @@
 			</form>
 		</div>
 
+		<!-- Harga & ukuran: terbuka otomatis bila sedang dipakai -->
+		<details class="mt-3 border-t border-line/50 pt-2" open={hasPriceOrSize}>
+			<summary class="eyebrow cursor-pointer select-none">
+				Harga &amp; ukuran{hasPriceOrSize ? ' · aktif' : ''}
+			</summary>
+			<div class="mt-3 flex flex-col gap-4 pb-1 sm:flex-row sm:items-end sm:gap-8">
+				<fieldset class="min-w-0">
+					<legend class="label">Rentang harga (Rp)</legend>
+					<div class="flex items-center gap-2">
+						<input
+							type="number"
+							name="min"
+							form="filter-form"
+							inputmode="numeric"
+							min="0"
+							step="1000"
+							placeholder="Terendah"
+							aria-label="Harga terendah"
+							value={data.filters.min ?? ''}
+							class="field-sm w-32"
+						/>
+						<span class="text-smoke" aria-hidden="true">–</span>
+						<input
+							type="number"
+							name="max"
+							form="filter-form"
+							inputmode="numeric"
+							min="0"
+							step="1000"
+							placeholder="Tertinggi"
+							aria-label="Harga tertinggi"
+							value={data.filters.max ?? ''}
+							class="field-sm w-32"
+						/>
+					</div>
+				</fieldset>
+
+				{#if data.sizeOptions.length > 0}
+					<fieldset class="min-w-0">
+						<legend class="label">Ukuran tersedia</legend>
+						<div class="flex flex-wrap gap-1.5">
+							<label class="chip cursor-pointer {ukuranSel ? '' : 'chip-on'}">
+								<input
+									type="radio"
+									name="ukuran"
+									form="filter-form"
+									value=""
+									class="sr-only"
+									checked={!ukuranSel}
+									onchange={() => (ukuranPick = '')}
+								/>
+								Semua
+							</label>
+							{#each data.sizeOptions as s (s)}
+								<label
+									class="chip cursor-pointer focus-within:outline-2 focus-within:outline-offset-2 {ukuranSel ===
+									s
+										? 'chip-on'
+										: ''}"
+								>
+									<input
+										type="radio"
+										name="ukuran"
+										form="filter-form"
+										value={s}
+										class="sr-only"
+										checked={ukuranSel === s}
+										onchange={() => (ukuranPick = s)}
+									/>
+									{s}
+								</label>
+							{/each}
+						</div>
+					</fieldset>
+				{/if}
+
+				<button type="submit" form="filter-form" class="btn btn-primary btn-tool">Terapkan</button>
+			</div>
+		</details>
+
 		{#if hasFilter}
 			<div
 				class="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-line/50 pt-2 text-[11px]"
@@ -152,6 +255,33 @@
 							href={buildHref({ q: '', page: 1 })}
 							class="text-smoke hover:text-ink"
 							aria-label="Hapus filter pencarian"
+						>
+							<X size={11} />
+						</a>
+					</span>
+				{/if}
+				{#if data.filters.min !== null || data.filters.max !== null}
+					<span class="tag">
+						Harga {data.filters.min !== null ? rp(data.filters.min) : '0'} – {data.filters.max !==
+						null
+							? rp(data.filters.max)
+							: '∞'}
+						<a
+							href={buildHref({ min: null, max: null, page: 1 })}
+							class="text-smoke hover:text-ink"
+							aria-label="Hapus filter harga"
+						>
+							<X size={11} />
+						</a>
+					</span>
+				{/if}
+				{#if data.filters.ukuran}
+					<span class="tag">
+						Ukuran {data.filters.ukuran}
+						<a
+							href={buildHref({ ukuran: '', page: 1 })}
+							class="text-smoke hover:text-ink"
+							aria-label="Hapus filter ukuran"
 						>
 							<X size={11} />
 						</a>
