@@ -67,6 +67,7 @@ import * as produkDetail from '../../routes/produk/[slug]/+page.server';
 import * as bundleDetail from '../../routes/bundling/[slug]/+page.server';
 import * as adminList from '../../routes/admin/pesanan/+page.server';
 import * as adminDetail from '../../routes/admin/pesanan/[kode]/+page.server';
+import * as cetak from '../../routes/admin/pesanan/[kode]/cetak/+page.server';
 import * as keranjang from '../../routes/keranjang/+page.server';
 import * as checkout from '../../routes/checkout/+page.server';
 import * as uploads from '../../routes/uploads/[...path]/+server';
@@ -1389,5 +1390,78 @@ describe('admin kelola transaksi (SRS-F-008, TC-008-01/08)', () => {
 		const koreksi = await act('koreksiResi', { courier: 'SiCepat', trackingNumber: 'SC1234567' });
 		expect(koreksi.success).toBe(true);
 		expect(db.select().from(shipments).get()!.courier).toBe('SiCepat');
+	});
+});
+
+/* ====================================================================== */
+describe('cetak nota & label pengiriman (admin)', () => {
+	type Cetak = {
+		jenis: 'nota' | 'label';
+		order: { code: string; total: number; recipientName: string };
+		items: { itemName: string; components: { productName: string; quantity: number }[] }[];
+		paymentStatus: string;
+		shipment: { courier: string | null; trackingNumber: string | null } | null;
+		store: { name: string };
+	};
+	const load = (
+		code: string,
+		qs = '',
+		uid = adminId,
+		role: 'admin' | 'konsumen' | 'owner' = 'admin'
+	) =>
+		cetak.load({
+			params: { kode: code },
+			locals: U(uid, role),
+			url: new URL(`http://x/admin/pesanan/${code}/cetak${qs}`)
+		} as never) as unknown as Promise<Cetak>;
+
+	it('nota: memuat penerima, total, status bayar, dan ringkasan toko', async () => {
+		const { code, orderId } = await paidOrder();
+		const d = await load(code);
+		expect(d.jenis).toBe('nota');
+		expect(d.order).toMatchObject({ code, recipientName: SHIP.recipientName });
+		expect(d.order.total).toBe(orderOf(orderId).total);
+		expect(d.paymentStatus).toBe('dikonfirmasi');
+		expect(d.items).toHaveLength(1);
+		expect(d.shipment).toMatchObject({ courier: null, trackingNumber: null });
+		expect(d.store.name).toBe('Downshit Store');
+	});
+
+	it('?jenis=label → label; nilai lain (termasuk aneh) kembali ke nota', async () => {
+		const { code } = await newOrder();
+		expect((await load(code, '?jenis=label')).jenis).toBe('label');
+		expect((await load(code, '?jenis=nota')).jenis).toBe('nota');
+		expect((await load(code, '?jenis=<script>')).jenis).toBe('nota');
+		expect((await load(code)).jenis).toBe('nota');
+	});
+
+	it('paket bundling disertai isi paket; resi tampil setelah dikirim', async () => {
+		await cartAdd(buyerId, 'bundle', bundleId, 1);
+		const { code } = await createOrderFromCart(buyerId, SHIP);
+		await submitPaymentProof(code, buyerId, '/uploads/proofs/a.png');
+		await confirmPayment(code, adminId);
+		await shipOrder(code, adminId, { courier: 'JNE', trackingNumber: 'JNE12345' });
+
+		const d = await load(code, '?jenis=label');
+		expect(d.items[0].itemName).toBe('Paket Hemat');
+		expect(d.items[0].components.map((c) => c.productName).sort()).toEqual([
+			'Kaos Classic - L',
+			'Topi'
+		]);
+		expect(d.shipment).toMatchObject({ courier: 'JNE', trackingNumber: 'JNE12345' });
+	});
+
+	it('hanya admin: konsumen & owner ditolak 403, tanpa login diarahkan ke login, kode tak ada 404', async () => {
+		const { code } = await newOrder();
+		await expect(load(code, '', buyerId, 'konsumen')).rejects.toMatchObject({ status: 403 });
+		await expect(load(code, '', ownerId, 'owner')).rejects.toMatchObject({ status: 403 });
+		await expect(
+			cetak.load({
+				params: { kode: code },
+				locals: GUEST,
+				url: new URL('http://x/')
+			} as never)
+		).rejects.toSatisfy((e) => isRedirect(e));
+		await expect(load('DWN-TIDAKADA')).rejects.toMatchObject({ status: 404 });
 	});
 });

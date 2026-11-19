@@ -1,17 +1,9 @@
 import { error, fail } from '@sveltejs/kit';
 import { and, desc, eq } from 'drizzle-orm';
 import { db } from '#lib/server/db';
-import {
-	activityLogs,
-	orderItemComponents,
-	orderItems,
-	orders,
-	payments,
-	products,
-	shipments,
-	users
-} from '#lib/server/db/schema';
+import { activityLogs, orders, payments, shipments, users } from '#lib/server/db/schema';
 import { requireRole } from '#lib/server/guards';
+import { getOrderItemsWithComponents } from '#lib/server/order-items';
 import {
 	confirmPayment,
 	orderFail,
@@ -42,28 +34,7 @@ export const load = async ({ params, locals }) => {
 		.where(eq(users.id, o.userId))
 		.limit(1);
 
-	const items = await db.select().from(orderItems).where(eq(orderItems.orderId, o.id));
-
-	const itemsWithComps = await Promise.all(
-		items.map(async (it) => {
-			if (it.itemType === 'bundle') {
-				const comps = await db
-					.select({
-						id: orderItemComponents.id,
-						orderItemId: orderItemComponents.orderItemId,
-						productId: orderItemComponents.productId,
-						quantity: orderItemComponents.quantity,
-						size: orderItemComponents.size,
-						productName: products.name
-					})
-					.from(orderItemComponents)
-					.innerJoin(products, eq(products.id, orderItemComponents.productId))
-					.where(eq(orderItemComponents.orderItemId, it.id));
-				return { ...it, components: comps };
-			}
-			return { ...it, components: [] };
-		})
-	);
+	const itemsWithComps = getOrderItemsWithComponents(o.id);
 
 	const paymentRows = await db
 		.select()

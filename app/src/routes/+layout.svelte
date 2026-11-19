@@ -14,6 +14,9 @@
 		page.url.pathname.startsWith('/admin') || page.url.pathname.startsWith('/owner')
 	);
 	const isAuthPage = $derived(page.url.pathname === '/login' || page.url.pathname === '/register');
+	// Halaman cetak (nota/label): kertas putih polos tanpa navbar, footer, maupun tema gelap staf
+	const isPrintView = $derived(page.route.id?.endsWith('/cetak') ?? false);
+	const staffTheme = $derived(isStaffArea && !isPrintView);
 
 	// Hasil form action yang sukses → toast. Satu objek `form` hanya ditampilkan sekali
 	// (efek ini juga berjalan ulang saat data lain berubah).
@@ -39,11 +42,11 @@
 <svelte:window onpageshow={onPageShow} />
 
 <div
-	class="flex min-h-screen flex-col bg-paper font-sans text-ink {isStaffArea
+	class="flex min-h-screen flex-col bg-paper font-sans text-ink {staffTheme
 		? 'theme-dark staff-area'
 		: ''}"
 >
-	{#if !isAuthPage}
+	{#if !isAuthPage && !isPrintView}
 		<Navbar user={data.user} cartCount={data.cartCount} store={data.store} />
 	{/if}
 
@@ -51,7 +54,7 @@
 		{@render children()}
 	</main>
 
-	{#if !isStaffArea && !isAuthPage}
+	{#if !isStaffArea && !isAuthPage && !isPrintView}
 		<Footer store={data.store} />
 	{/if}
 

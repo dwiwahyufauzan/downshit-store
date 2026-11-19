@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { dev } from '$app/env';
+	import { waLink } from '#lib/utils/whatsapp';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 
 	/* ------------------------------------------------------------------
@@ -9,8 +10,16 @@
 	 * ------------------------------------------------------------------ */
 	const AUTH_BG_IMAGE = 'https://i.pinimg.com/1200x/2a/94/a6/2a94a6fe903d096df267bef684e0f4bd.jpg';
 
-	let { form } = $props();
+	let { form, data } = $props();
 	let loading = $state(false);
+
+	// Lupa password: tanpa email, konsumen meminta admin mengatur ulang lewat WhatsApp (plan/04)
+	const forgotUrl = $derived(
+		waLink(
+			data.store?.whatsapp,
+			`Halo ${data.store?.name ?? 'Downshit Store'}, saya lupa password akun saya. Mohon bantuan mengatur ulang password.`
+		)
+	);
 
 	const demoAccounts = [
 		{ label: 'Owner', email: 'owner@downshit.local' },
@@ -132,6 +141,17 @@
 					{#if form?.errors?.password}
 						<p id="err-password" class="field-error">{form.errors.password[0]}</p>
 					{/if}
+					<p class="hint">
+						Lupa password?
+						{#if forgotUrl}
+							<a href={forgotUrl} target="_blank" rel="noopener noreferrer" class="link text-ink">
+								Hubungi admin via WhatsApp
+							</a>
+							untuk mengatur ulang.
+						{:else}
+							Hubungi admin toko untuk mengatur ulang.
+						{/if}
+					</p>
 				</div>
 
 				<button type="submit" disabled={loading} class="btn btn-primary btn-lg btn-block">

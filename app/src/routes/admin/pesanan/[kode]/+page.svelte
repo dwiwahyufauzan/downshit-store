@@ -3,6 +3,7 @@
 	import Breadcrumb from '#lib/components/Breadcrumb.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import MessageCircle from '@lucide/svelte/icons/message-circle';
+	import Printer from '@lucide/svelte/icons/printer';
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
 	import { COURIERS, PAYMENT_STATUS_BADGE, PAYMENT_STATUS_LABEL } from '#lib/constants';
 	import { formatRupiah, formatDate } from '#lib/utils/format';
@@ -35,6 +36,12 @@
 		<PageHeader title={o.code} meta="Dibuat {formatDate(o.createdAt)}">
 			{#snippet after()}<StatusBadge status={o.status} />{/snippet}
 			{#snippet actions()}
+				<a href="/admin/pesanan/{o.code}/cetak" class="btn btn-tool">
+					<Printer size={12} /> Cetak nota
+				</a>
+				<a href="/admin/pesanan/{o.code}/cetak?jenis=label" class="btn btn-tool">
+					<Printer size={12} /> Cetak label
+				</a>
 				{#if data.waUrl}
 					<a href={data.waUrl} target="_blank" rel="noreferrer" class="btn btn-tool">
 						<MessageCircle size={12} /> WhatsApp pelanggan
