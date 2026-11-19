@@ -675,6 +675,14 @@
 	}
 }
 
+/* Tautan "Lihat semua →": panah bergeser saat disorot (beranda: produk terbaru & bundling) */
+.more .arrow {
+	transition: transform 0.2s ease;
+}
+.more:hover .arrow {
+	transform: translateX(3px);
+}
+
 /* Indikator "Memproses…" pada tombol submit (lihat #lib/actions/submit-guard) */
 .spinner {
 	display: inline-block;
