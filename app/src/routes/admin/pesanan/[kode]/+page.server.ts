@@ -122,7 +122,7 @@ export const actions = {
 		} catch (e) {
 			return orderFail(e);
 		}
-		return { success: true };
+		return { success: true, message: 'Pembayaran dikonfirmasi. Pesanan masuk ke status diproses.' };
 	},
 
 	tolak: async ({ request, locals, params }) => {
@@ -134,7 +134,10 @@ export const actions = {
 		} catch (e) {
 			return orderFail(e);
 		}
-		return { success: true };
+		return {
+			success: true,
+			message: 'Bukti pembayaran ditolak. Pelanggan diminta mengunggah bukti yang baru.'
+		};
 	},
 
 	kirim: async ({ request, locals, params }) => {
@@ -159,7 +162,7 @@ export const actions = {
 		} catch (e) {
 			return orderFail(e);
 		}
-		return { success: true };
+		return { success: true, message: 'Pesanan ditandai dikirim dan nomor resi tersimpan.' };
 	},
 
 	koreksiResi: async ({ request, locals, params }) => {
@@ -184,7 +187,7 @@ export const actions = {
 		} catch (e) {
 			return orderFail(e);
 		}
-		return { success: true };
+		return { success: true, message: 'Nomor resi berhasil dikoreksi.' };
 	},
 
 	batal: async ({ request, locals, params }) => {
@@ -208,6 +211,6 @@ export const actions = {
 		} catch (e) {
 			return orderFail(e);
 		}
-		return { success: true };
+		return { success: true, message: 'Pesanan dibatalkan dan stok dikembalikan.' };
 	}
 };

@@ -38,9 +38,9 @@
 		{/snippet}
 	</PageHeader>
 
-	{#if form?.message}
+	{#if form?.message && !form.success}
 		<div class="mt-6">
-			<Alert type={form.success ? 'success' : 'error'} message={form.message} />
+			<Alert type="error" message={form.message} />
 		</div>
 	{/if}
 

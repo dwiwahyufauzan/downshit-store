@@ -1229,12 +1229,18 @@ describe('katalog & detail (SRS-F-005, TC-005-*)', () => {
 		expect(badQty.status).toBe(400);
 		const frac = (await produkDetail.actions.tambah(ev(U(buyerId), '1.5'))) as { status: number };
 		expect(frac.status).toBe(400);
-		const ok = (await produkDetail.actions.tambah(ev(U(buyerId), '2'))) as { success: boolean };
+		const ok = (await produkDetail.actions.tambah(ev(U(buyerId), '2'))) as {
+			success: boolean;
+			toastAction: { href: string; label: string };
+		};
 		expect(ok.success).toBe(true);
+		expect(ok.toastAction).toEqual({ href: '/keranjang', label: 'Lihat keranjang' }); // tautan di toast
 		const okB = (await bundleDetail.actions.tambah(ev(U(buyerId), '1', 'paket-hemat'))) as {
 			success: boolean;
+			toastAction: { href: string };
 		};
 		expect(okB.success).toBe(true);
+		expect(okB.toastAction.href).toBe('/keranjang');
 		expect(db.select().from(cartItems).all()).toHaveLength(2);
 	});
 

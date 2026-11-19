@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
+	import { enhanceInPlace } from '#lib/actions/form-enhance';
 	import { thumbOf } from '#lib/utils/image';
 	import Alert from '#lib/components/Alert.svelte';
 	import Breadcrumb from '#lib/components/Breadcrumb.svelte';
@@ -19,6 +21,7 @@
 	let p = $derived(data.product);
 	let qty = $state(1);
 	let size = $state('');
+	let adding = $state(false);
 
 	// Galeri gambar produk
 	let activeImageIndex = $state(0);
@@ -75,19 +78,7 @@
 		]}
 	/>
 
-	{#if form?.success}
-		<div class="mb-6">
-			<Alert
-				type="success"
-				message={form.message ?? 'Produk berhasil ditambahkan ke keranjang belanja!'}
-			/>
-			<p class="mt-2 text-xs">
-				<a href="/keranjang" class="link font-semibold tracking-[0.14em] uppercase">
-					Lihat keranjang
-				</a>
-			</p>
-		</div>
-	{:else if form?.message}
+	{#if form?.message && !form.success}
 		<div class="mb-6">
 			<Alert type="error" message={form.message} />
 		</div>
@@ -223,7 +214,12 @@
 						</a>
 					</div>
 				{:else if data.isKonsumen}
-					<form method="POST" action="?/tambah" class="space-y-5">
+					<form
+						method="POST"
+						action="?/tambah"
+						class="space-y-5"
+						use:enhance={enhanceInPlace((b) => (adding = b))}
+					>
 						<input type="hidden" name="productId" value={p.id} />
 
 						{#if hasSizes}
@@ -271,10 +267,14 @@
 						<button
 							type="submit"
 							class="btn btn-primary btn-lg btn-block"
-							disabled={hasSizes && !size}
+							disabled={adding || (hasSizes && !size)}
 						>
 							<ShoppingBag size={16} />
-							{hasSizes && !size ? 'Pilih ukuran dulu' : 'Tambah ke keranjang'}
+							{adding
+								? 'Menambahkan…'
+								: hasSizes && !size
+									? 'Pilih ukuran dulu'
+									: 'Tambah ke keranjang'}
 						</button>
 					</form>
 				{:else}

@@ -121,7 +121,8 @@ export const actions: Actions = {
 
 		return {
 			success: true,
-			message: 'Paket bundling berhasil ditambahkan ke keranjang belanja!'
+			message: 'Paket bundling berhasil ditambahkan ke keranjang belanja!',
+			toastAction: { href: '/keranjang', label: 'Lihat keranjang' }
 		};
 	}
 };

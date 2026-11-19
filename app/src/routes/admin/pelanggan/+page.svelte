@@ -53,11 +53,7 @@
 		</div>
 	{/if}
 
-	{#if form?.success}
-		<div class="mt-6">
-			<Alert type="success" message={form.message ?? 'Perubahan status akun berhasil disimpan.'} />
-		</div>
-	{:else if form?.message}
+	{#if form?.message && !form.success}
 		<div class="mt-6"><Alert type="error" message={form.message} /></div>
 	{/if}
 

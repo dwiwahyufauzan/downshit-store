@@ -46,6 +46,6 @@ export const actions = {
 		});
 
 		// Perubahan ongkir tidak mengubah pesanan lama (snapshot orders.shipping_cost)
-		return { success: true };
+		return { success: true, message: 'Pengaturan toko berhasil disimpan!' };
 	}
 };

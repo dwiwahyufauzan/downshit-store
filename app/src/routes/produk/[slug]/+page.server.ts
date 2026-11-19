@@ -156,7 +156,8 @@ export const actions: Actions = {
 
 		return {
 			success: true,
-			message: 'Produk berhasil ditambahkan ke keranjang belanja!'
+			message: 'Produk berhasil ditambahkan ke keranjang belanja!',
+			toastAction: { href: '/keranjang', label: 'Lihat keranjang' }
 		};
 	}
 };

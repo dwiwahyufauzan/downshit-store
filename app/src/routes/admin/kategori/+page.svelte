@@ -39,11 +39,7 @@
 <div>
 	<PageHeader title="Kelola kategori" meta="{data.categories.length} kategori" />
 
-	{#if form?.success}
-		<div class="mt-6">
-			<Alert type="success" message={form.message ?? 'Kategori berhasil disimpan.'} />
-		</div>
-	{:else if form?.message}
+	{#if form?.message && !form.success}
 		<div class="mt-6"><Alert type="error" message={form.message} /></div>
 	{/if}
 

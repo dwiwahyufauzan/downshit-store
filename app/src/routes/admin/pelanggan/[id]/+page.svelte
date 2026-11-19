@@ -61,9 +61,7 @@
 			customerPhone={form.customerPhone}
 		/>
 	{/if}
-	{#if form?.success}
-		<Alert type="success" message={form.message ?? 'Perubahan tersimpan.'} />
-	{:else if form?.message}
+	{#if form?.message && !form.success}
 		<Alert type="error" message={form.message} />
 	{/if}
 

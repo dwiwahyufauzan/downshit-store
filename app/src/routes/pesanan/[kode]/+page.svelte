@@ -105,13 +105,9 @@
 		</div>
 	{/if}
 
-	{#if form?.success || form?.message}
+	{#if form?.message && !form.success}
 		<div class="mt-6">
-			{#if form?.success}
-				<Alert type="success" message={form.message ?? 'Aksi berhasil diproses.'} />
-			{:else if form?.message}
-				<Alert type="error" message={form.message} />
-			{/if}
+			<Alert type="error" message={form.message} />
 		</div>
 	{:else if data.justCreated}
 		<div class="mt-6">

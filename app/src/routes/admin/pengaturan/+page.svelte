@@ -21,12 +21,6 @@
 <div>
 	<PageHeader title="Pengaturan toko" />
 
-	{#if form?.success}
-		<div class="mt-6">
-			<Alert type="success" message="Pengaturan toko berhasil disimpan!" />
-		</div>
-	{/if}
-
 	{#if form?.errors}
 		<div class="mt-6">
 			<Alert

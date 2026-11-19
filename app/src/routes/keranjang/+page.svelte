@@ -42,11 +42,9 @@
 		{/snippet}
 	</PageHeader>
 
-	{#if form?.success || form?.message || data.hasProblem}
+	{#if (form?.message && !form.success) || data.hasProblem}
 		<div class="mt-6 space-y-3">
-			{#if form?.success}
-				<Alert type="success" message={form.message ?? 'Keranjang berhasil diperbarui.'} />
-			{:else if form?.message}
+			{#if form?.message && !form.success}
 				<Alert type="error" message={form.message} />
 			{/if}
 

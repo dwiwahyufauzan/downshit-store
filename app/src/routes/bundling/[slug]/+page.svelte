@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
+	import { enhanceInPlace } from '#lib/actions/form-enhance';
 	import { thumbOf } from '#lib/utils/image';
 	import Alert from '#lib/components/Alert.svelte';
 	import Breadcrumb from '#lib/components/Breadcrumb.svelte';
@@ -15,6 +17,7 @@
 
 	let b = $derived(data.bundle);
 	let qty = $state(1);
+	let adding = $state(false);
 	// Pilihan ukuran per komponen ber-ukuran: productId → label
 	let picks = $state<Record<number, string>>({});
 
@@ -76,19 +79,7 @@
 <div class="container-shop py-6 sm:py-8">
 	<Breadcrumb items={[{ label: 'Bundling', href: '/bundling' }, { label: b.name }]} />
 
-	{#if form?.success}
-		<div class="mb-6">
-			<Alert
-				type="success"
-				message={form.message ?? 'Paket bundling berhasil ditambahkan ke keranjang belanja!'}
-			/>
-			<p class="mt-2 text-xs">
-				<a href="/keranjang" class="link font-semibold tracking-[0.14em] uppercase">
-					Lihat keranjang
-				</a>
-			</p>
-		</div>
-	{:else if form?.message}
+	{#if form?.message && !form.success}
 		<div class="mb-6">
 			<Alert type="error" message={form.message} />
 		</div>
@@ -168,7 +159,12 @@
 						</a>
 					</div>
 				{:else if data.isKonsumen}
-					<form method="POST" action="?/tambah" class="space-y-5">
+					<form
+						method="POST"
+						action="?/tambah"
+						class="space-y-5"
+						use:enhance={enhanceInPlace((b) => (adding = b))}
+					>
 						<input type="hidden" name="bundleId" value={b.id} />
 						<input type="hidden" name="sizes" value={encoded} />
 
@@ -220,9 +216,13 @@
 							</div>
 						</div>
 
-						<button type="submit" class="btn btn-primary btn-lg btn-block" disabled={!allPicked}>
+						<button
+							type="submit"
+							class="btn btn-primary btn-lg btn-block"
+							disabled={adding || !allPicked}
+						>
 							<ShoppingBag size={16} />
-							{allPicked ? 'Beli paket bundling' : 'Pilih ukuran dulu'}
+							{adding ? 'Menambahkan…' : allPicked ? 'Beli paket bundling' : 'Pilih ukuran dulu'}
 						</button>
 					</form>
 				{:else}

@@ -675,6 +675,33 @@
 	}
 }
 
+/* Indikator "Memproses…" pada tombol submit (lihat #lib/actions/submit-guard) */
+.spinner {
+	display: inline-block;
+	width: 1em;
+	height: 1em;
+	flex: none;
+	border: 2px solid currentColor;
+	border-right-color: transparent;
+	border-radius: 9999px;
+	animation: spinner-rotate 0.7s linear infinite;
+}
+@keyframes spinner-rotate {
+	to {
+		transform: rotate(360deg);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.spinner {
+		animation: none;
+		border-right-color: currentColor;
+	}
+}
+.btn:disabled:has(.spinner) {
+	opacity: 0.75;
+	cursor: progress;
+}
+
 @media print {
 	.print\:hidden {
 		display: none !important;

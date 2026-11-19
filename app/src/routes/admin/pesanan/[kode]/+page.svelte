@@ -44,11 +44,7 @@
 		</PageHeader>
 	</div>
 
-	{#if form?.success}
-		<Alert type="success" message="Aksi berhasil diproses!" />
-	{/if}
-
-	{#if form?.message}
+	{#if form?.message && !form.success}
 		<Alert type="error" message={form.message} />
 	{/if}
 
