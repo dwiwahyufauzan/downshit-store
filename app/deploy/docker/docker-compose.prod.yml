@@ -1,0 +1,18 @@
+# Jalankan dari folder app/:  docker compose -f deploy/docker/docker-compose.prod.yml up -d --build
+# SQLite = satu berkas di volume `data` (tidak ada kontainer database terpisah).
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    restart: unless-stopped
+    env_file: ../../.env.docker # DATABASE_URL=/data/downshit.db  UPLOAD_DIR=/data/uploads  HOST=0.0.0.0  PORT=3000  ORIGIN=...  BODY_SIZE_LIMIT=3M  CRON_SECRET=...
+    volumes:
+      - data:/data
+    ports:
+      - '127.0.0.1:3000:3000' # Nginx/Cloudflared di host menerusi ke sini (jangan buka ke internet langsung)
+volumes:
+  data: {}
+# Pemeliharaan & backup tetap dari host:
+#   curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" -H "Content-Type: application/json" -d '{}' http://127.0.0.1:3000/internal/maintenance
+#   docker compose -f deploy/docker/docker-compose.prod.yml exec -T app node -e "require('better-sqlite3')('/data/downshit.db').backup('/data/backup.db').then(()=>console.log('ok'))"

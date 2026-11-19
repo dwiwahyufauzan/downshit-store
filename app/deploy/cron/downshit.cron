@@ -1,0 +1,11 @@
+# Pasang sebagai user aplikasi:  sudo -u downshit crontab deploy/cron/downshit.cron   (atau crontab -e lalu tempel)
+# PATH minimal di cron: gunakan path absolut. Skrip dipanggil dengan `bash` (bit +x bisa hilang tiap rilis).
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+
+# pemeliharaan tiap 15 menit: kedaluwarsa pesanan, auto-selesai, bersihkan sesi/login_attempts
+*/15 * * * * bash /srv/downshit/current/deploy/scripts/maintenance.sh >> /srv/downshit/shared/maintenance.log 2>&1
+# backup harian 02:15 (database via sqlite3 .backup + uploads)
+15 2 * * * bash /srv/downshit/current/deploy/scripts/backup.sh >> /srv/downshit/shared/backup.log 2>&1
+# uji restore tiap tanggal 1 pukul 03:30 (hasil di restore-test.log; ALLOW_DIFF karena aplikasi aktif)
+30 3 1 * * ALLOW_DIFF=1 bash /srv/downshit/current/deploy/scripts/restore-test.sh >> /srv/downshit/shared/restore-test.log 2>&1
