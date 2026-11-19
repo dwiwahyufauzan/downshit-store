@@ -5,6 +5,8 @@
 	import Seo from '#lib/components/Seo.svelte';
 	import ProductCard from '#lib/components/ProductCard.svelte';
 	import { page } from '$app/state';
+	import ProductGridSkeleton from '#lib/components/ProductGridSkeleton.svelte';
+	import { nav } from '#lib/stores/navigation.svelte';
 	import Search from '@lucide/svelte/icons/search';
 	import X from '@lucide/svelte/icons/x';
 	import type { PageProps } from './$types';
@@ -162,7 +164,9 @@
 
 	<!-- Grid Produk -->
 	<div class="pt-8">
-		{#if data.items.length === 0}
+		{#if nav.slowTo === '/produk'}
+			<ProductGridSkeleton />
+		{:else if data.items.length === 0}
 			<EmptyState
 				title="Tidak ada produk ditemukan"
 				description="Coba sesuaikan kata kunci pencarian atau pilih kategori lainnya."
