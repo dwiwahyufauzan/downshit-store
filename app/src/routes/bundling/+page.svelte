@@ -2,6 +2,7 @@
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import ProductCard from '#lib/components/ProductCard.svelte';
+	import Seo from '#lib/components/Seo.svelte';
 	import { formatRupiah } from '#lib/utils/format';
 	import Search from '@lucide/svelte/icons/search';
 	import X from '@lucide/svelte/icons/x';
@@ -25,6 +26,10 @@
 	);
 </script>
 
+<Seo
+	title="Paket Bundling Hemat — Store Downshit Subang"
+	description="Dapatkan kombinasi streetwear pilihan Downshit dengan harga bundling lebih hemat. Set kaos, celana, hoodie dengan potongan harga spesial."
+/>
 <svelte:head>
 	<title>Paket Bundling Hemat — Store Downshit Subang</title>
 	<meta

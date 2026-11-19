@@ -5,6 +5,7 @@
 	import Alert from '#lib/components/Alert.svelte';
 	import Breadcrumb from '#lib/components/Breadcrumb.svelte';
 	import SizePicker from '#lib/components/SizePicker.svelte';
+	import Seo from '#lib/components/Seo.svelte';
 	import { formatRupiah } from '#lib/utils/format';
 	import { effectiveBundleStock } from '#lib/utils/bundle';
 	import { encodeSelection } from '#lib/utils/sizes';
@@ -75,6 +76,13 @@
 			`Paket bundling ${b.name} hanya ${formatRupiah(b.price)} di Store Downshit.`}
 	/>
 </svelte:head>
+<Seo
+	title="{b.name} (Paket Bundling Hemat) - Store Downshit Subang"
+	description={b.description ||
+		`Paket bundling ${b.name} hanya ${formatRupiah(b.price)} di Store Downshit.`}
+	image={b.imageUrl}
+	type="product"
+/>
 
 <div class="container-shop py-6 sm:py-8">
 	<Breadcrumb items={[{ label: 'Bundling', href: '/bundling' }, { label: b.name }]} />

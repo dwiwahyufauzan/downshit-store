@@ -1,3 +1,4 @@
+import { ORIGIN } from '$app/env/private';
 import { db } from '#lib/server/db';
 import { cartItems, carts } from '#lib/server/db/schema';
 import { count, eq } from 'drizzle-orm';
@@ -28,6 +29,8 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 
 	return {
 		user: locals.user,
+		// URL publik situs, dipakai untuk tautan kanonik & Open Graph (harus absolut)
+		origin: ORIGIN ?? null,
 		cartCount,
 		store: {
 			name: s.storeName,

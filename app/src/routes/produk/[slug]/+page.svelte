@@ -5,6 +5,7 @@
 	import Alert from '#lib/components/Alert.svelte';
 	import Breadcrumb from '#lib/components/Breadcrumb.svelte';
 	import SizePicker from '#lib/components/SizePicker.svelte';
+	import Seo from '#lib/components/Seo.svelte';
 	import ProductShelf from '#lib/components/ProductShelf.svelte';
 	import Stars from '#lib/components/Stars.svelte';
 	import { formatRupiah } from '#lib/utils/format';
@@ -22,6 +23,11 @@
 	let qty = $state(1);
 	let size = $state('');
 	let adding = $state(false);
+
+	const seoDescription = $derived(
+		p.description?.slice(0, 160) ||
+			`Beli ${p.name} harga ${formatRupiah(p.price)} di Store Downshit.`
+	);
 
 	// Galeri gambar produk
 	let activeImageIndex = $state(0);
@@ -66,6 +72,12 @@
 			`Beli ${p.name} harga ${formatRupiah(p.price)} di Store Downshit.`}
 	/>
 </svelte:head>
+<Seo
+	title="{p.name} - Store Downshit Subang"
+	description={seoDescription}
+	image={p.imageUrl}
+	type="product"
+/>
 
 <div class="container-shop py-6 sm:py-8">
 	<Breadcrumb

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
 	import Hls from 'hls.js';
+	import Seo from '#lib/components/Seo.svelte';
 	import ProductCard from '#lib/components/ProductCard.svelte';
 	import WhatsAppShortcut from '#lib/components/WhatsAppShortcut.svelte';
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
@@ -306,6 +307,10 @@
 		content="Toko online resmi Downshit Subang. Kaos boxy, hoodie, celana, dan paket bundling hemat."
 	/>
 </svelte:head>
+<Seo
+	title="Downshit — Streetwear Lokal Subang"
+	description="Toko online resmi Downshit Subang. Kaos boxy, hoodie, celana, dan paket bundling hemat."
+/>
 
 <svelte:window onkeydown={onKey} />
 

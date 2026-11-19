@@ -2,6 +2,7 @@
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import Pagination from '#lib/components/Pagination.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Seo from '#lib/components/Seo.svelte';
 	import ProductCard from '#lib/components/ProductCard.svelte';
 	import { page } from '$app/state';
 	import Search from '@lucide/svelte/icons/search';
@@ -36,6 +37,12 @@
 		content="Koleksi streetwear otentik dari Downshit Store. Temukan kaos boxy, hoodie, celana, dan aksesoris terbaik."
 	/>
 </svelte:head>
+<!-- Kanonik: hasil pencarian/filter tidak diindeks sebagai halaman terpisah; hanya nomor halaman yang dipertahankan -->
+<Seo
+	title="Katalog Produk — Store Downshit Subang"
+	description="Koleksi streetwear otentik dari Downshit Store. Temukan kaos boxy, hoodie, celana, dan aksesoris terbaik."
+	search={data.pagination.page > 1 ? `?page=${data.pagination.page}` : ''}
+/>
 
 <div class="container-shop py-6 sm:py-8">
 	<PageHeader
