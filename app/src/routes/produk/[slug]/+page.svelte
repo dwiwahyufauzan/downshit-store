@@ -104,6 +104,8 @@
 					<img
 						src={activeImage}
 						alt="{p.name} - Foto {activeImageIndex + 1}"
+						fetchpriority="high"
+						decoding="async"
 						class="h-full w-full object-contain transition-opacity duration-200"
 					/>
 				{:else}

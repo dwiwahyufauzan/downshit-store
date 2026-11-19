@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { thumbOf } from '#lib/utils/image';
+	import { srcsetOf, thumbOf } from '#lib/utils/image';
 	import { formatRupiah } from '#lib/utils/format';
 	import Star from '@lucide/svelte/icons/star';
 
@@ -41,7 +41,14 @@
 	<!-- Kotak persegi + object-contain: foto produk ditampilkan utuh (tidak terpotong), berapa pun rasionya -->
 	<div class="product-media !aspect-square !bg-transparent [&_img]:!object-contain">
 		{#if imageUrl}
-			<img src={thumbOf(imageUrl)} alt={name} loading="lazy" />
+			<img
+				src={thumbOf(imageUrl)}
+				srcset={srcsetOf(imageUrl)}
+				sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+				alt={name}
+				loading="lazy"
+				decoding="async"
+			/>
 		{:else}
 			<div class="flex h-full w-full items-center justify-center">
 				<span class="display text-[clamp(1.5rem,5vw,2.5rem)] text-ink/10">DOWNSHIT</span>

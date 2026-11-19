@@ -80,7 +80,7 @@ afterAll(() => {
 	for (const ext of ['', '-wal', '-shm']) rmSync(env.file + ext, { force: true });
 });
 
-const call = (h: typeof sitemap, origin = 'http://localhost:5173') =>
+const call = (h: (e: never) => unknown, origin = 'http://localhost:5173') =>
 	h({ url: new URL(origin + '/x') } as never) as Response;
 
 describe('GET /sitemap.xml', () => {
