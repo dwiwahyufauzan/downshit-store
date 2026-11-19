@@ -23,9 +23,7 @@
 	// Galeri gambar produk
 	let activeImageIndex = $state(0);
 	const gallery = $derived(data.gallery ?? []);
-	const activeImage = $derived(
-		gallery[activeImageIndex]?.imageUrl ?? p.imageUrl ?? null
-	);
+	const activeImage = $derived(gallery[activeImageIndex]?.imageUrl ?? p.imageUrl ?? null);
 
 	function prevImage() {
 		if (gallery.length <= 1) return;
@@ -123,7 +121,7 @@
 						type="button"
 						onclick={prevImage}
 						aria-label="Foto sebelumnya"
-						class="absolute top-1/2 left-3 -translate-y-1/2 flex h-9 w-9 items-center justify-center border border-line bg-paper/90 text-ink opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:bg-ink hover:text-paper focus:opacity-100"
+						class="absolute top-1/2 left-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center border border-line bg-paper/90 text-ink opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:bg-ink hover:text-paper focus:opacity-100"
 					>
 						<ChevronLeft size={20} />
 					</button>
@@ -131,14 +129,14 @@
 						type="button"
 						onclick={nextImage}
 						aria-label="Foto berikutnya"
-						class="absolute top-1/2 right-3 -translate-y-1/2 flex h-9 w-9 items-center justify-center border border-line bg-paper/90 text-ink opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:bg-ink hover:text-paper focus:opacity-100"
+						class="absolute top-1/2 right-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center border border-line bg-paper/90 text-ink opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:bg-ink hover:text-paper focus:opacity-100"
 					>
 						<ChevronRight size={20} />
 					</button>
 
 					<!-- Indikator urutan foto -->
 					<div class="absolute right-3 bottom-3">
-						<span class="badge border border-line/60 bg-paper/90 text-ink shadow-sm tabular-nums">
+						<span class="badge border border-line/60 bg-paper/90 text-ink tabular-nums shadow-sm">
 							{activeImageIndex + 1} / {gallery.length}
 						</span>
 					</div>
@@ -147,12 +145,12 @@
 
 			<!-- Thumbnail strip galeri foto -->
 			{#if gallery.length > 1}
-				<div class="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+				<div class="flex scrollbar-none gap-2 overflow-x-auto pb-1">
 					{#each gallery as item, idx (item.id)}
 						<button
 							type="button"
 							onclick={() => (activeImageIndex = idx)}
-							class="relative h-18 w-18 sm:h-20 sm:w-20 shrink-0 overflow-hidden border-2 transition-all {activeImageIndex ===
+							class="relative h-18 w-18 shrink-0 overflow-hidden border-2 transition-all sm:h-20 sm:w-20 {activeImageIndex ===
 							idx
 								? 'scale-[1.02] border-ink opacity-100 shadow-sm'
 								: 'border-line opacity-60 hover:border-smoke hover:opacity-100'}"

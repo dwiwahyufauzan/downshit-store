@@ -28,7 +28,7 @@ vi.mock('$app/env/private', () => ({
 
 import { existsSync, readdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import { and, eq } from 'drizzle-orm';
+import { and, count, eq } from 'drizzle-orm';
 import { isRedirect } from '@sveltejs/kit';
 import { db } from './db';
 import {
@@ -71,6 +71,7 @@ import * as keranjang from '../../routes/keranjang/+page.server';
 import * as checkout from '../../routes/checkout/+page.server';
 import * as uploads from '../../routes/uploads/[...path]/+server';
 import * as maintenance from '../../routes/internal/maintenance/+server';
+import { CATALOG_PAGE_SIZE } from '../constants';
 
 const SHIP = {
 	recipientName: 'Budi Santoso',
@@ -1117,8 +1118,11 @@ describe('katalog & detail (SRS-F-005, TC-005-*)', () => {
 		}
 	});
 
-	it('paginasi 12 per halaman', async () => {
-		for (let i = 0; i < 14; i++)
+	it('paginasi sesuai CATALOG_PAGE_SIZE', async () => {
+		// isi sampai tepat (satu halaman penuh + 5 produk) tanpa bergantung pada data awal tes lain
+		const existing = db.select({ n: count() }).from(products).get()?.n ?? 0;
+		const extra = 5;
+		for (let i = 0; i < CATALOG_PAGE_SIZE + extra - existing; i++)
 			db.insert(products)
 				.values({ name: `Produk ${i}`, slug: `produk-${i}`, price: 1000 + i, stock: 1 })
 				.run();
@@ -1126,10 +1130,10 @@ describe('katalog & detail (SRS-F-005, TC-005-*)', () => {
 			items: unknown[];
 			pagination: { totalPages: number };
 		};
-		expect(p1.items).toHaveLength(12);
+		expect(p1.items).toHaveLength(CATALOG_PAGE_SIZE);
 		expect(p1.pagination.totalPages).toBe(2);
 		const p2 = (await katalog.load({ url: url('?page=2') } as never)) as { items: unknown[] };
-		expect(p2.items).toHaveLength(5); // 17 total
+		expect(p2.items).toHaveLength(extra);
 		const bad = (await katalog.load({ url: url('?page=-4') } as never)) as {
 			pagination: { page: number };
 		};

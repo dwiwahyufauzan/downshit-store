@@ -10,9 +10,7 @@
 		whatsapp?: string;
 	} = $props();
 
-	const rawNumber = $derived(
-		whatsapp || store?.whatsapp || '6281234567890'
-	);
+	const rawNumber = $derived(whatsapp || store?.whatsapp || '6281234567890');
 	const cleanNumber = $derived(rawNumber.replace(/\D/g, ''));
 	const formattedNumber = $derived(
 		cleanNumber.startsWith('0') ? '62' + cleanNumber.slice(1) : cleanNumber
@@ -27,20 +25,23 @@
 </script>
 
 <!-- Pintasan WhatsApp mengambang (tanpa background hijau, logo diperbesar) -->
-<aside aria-label="Pintasan WhatsApp" class="fixed bottom-5 right-5 z-40 print:hidden sm:bottom-6 sm:right-6">
+<aside
+	aria-label="Pintasan WhatsApp"
+	class="fixed right-5 bottom-5 z-40 sm:right-6 sm:bottom-6 print:hidden"
+>
 	<a
 		href={waUrl}
 		target="_blank"
 		rel="noopener noreferrer"
 		aria-label="WhatsApp"
 		title="WhatsApp ({formattedNumber})"
-		class="block text-[#25D366] transition-all duration-300 hover:scale-110 hover:text-[#20bd5a] active:scale-95 drop-shadow-[0_4px_10px_rgba(0,0,0,0.18)] hover:drop-shadow-[0_6px_16px_rgba(37,211,102,0.4)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#25D366]"
+		class="block text-[#25D366] drop-shadow-[0_4px_10px_rgba(0,0,0,0.18)] transition-all duration-300 hover:scale-110 hover:text-[#20bd5a] hover:drop-shadow-[0_6px_16px_rgba(37,211,102,0.4)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#25D366] active:scale-95"
 	>
 		<!-- Logo WhatsApp persis dari SVG yang diberikan pengguna -->
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
 			viewBox="0 0 448 512"
-			class="h-11 w-11 sm:h-12 sm:w-12 fill-current"
+			class="h-11 w-11 fill-current sm:h-12 sm:w-12"
 			aria-hidden="true"
 		>
 			<path

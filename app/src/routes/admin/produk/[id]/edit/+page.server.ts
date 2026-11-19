@@ -142,10 +142,9 @@ export const actions = {
 			fd.getAll('deleteImageIds').includes('-1') || fd.get('removeImage') === 'on';
 
 		// Upload gambar-gambar baru (mendukung multi-gambar)
-		const imageFiles = [
-			...fd.getAll('images'),
-			...fd.getAll('image')
-		].filter((f): f is File => f instanceof File && f.size > 0);
+		const imageFiles = [...fd.getAll('images'), ...fd.getAll('image')].filter(
+			(f): f is File => f instanceof File && f.size > 0
+		);
 
 		const uploadedUrls: string[] = [];
 		for (const file of imageFiles) {

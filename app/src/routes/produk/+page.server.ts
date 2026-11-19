@@ -3,11 +3,12 @@ import { db } from '$lib/server/db';
 import { categories, products } from '$lib/server/db/schema';
 import { escapeLike, pageParam } from '$lib/server/sql';
 import { getProductStats, ratingScoreOf, soldOf } from '$lib/server/recommendations';
+import { CATALOG_PAGE_SIZE } from '$lib/constants';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const page = pageParam(url);
-	const perPage = 50;
+	const perPage = CATALOG_PAGE_SIZE;
 	const q = url.searchParams.get('q')?.trim() ?? '';
 	const cat = url.searchParams.get('kategori')?.trim() ?? '';
 	const sort = url.searchParams.get('urut') ?? 'terbaru';

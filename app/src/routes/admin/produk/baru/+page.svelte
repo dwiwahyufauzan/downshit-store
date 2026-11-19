@@ -256,7 +256,8 @@
 							<div class="grid grid-cols-4 gap-2">
 								{#each filesList as item, idx (item.url)}
 									<div
-										class="group relative aspect-square cursor-pointer border-2 transition-all {activePreviewIndex === idx
+										class="group relative aspect-square cursor-pointer border-2 transition-all {activePreviewIndex ===
+										idx
 											? 'border-ink shadow'
 											: 'border-line hover:border-smoke'}"
 										onclick={() => (activePreviewIndex = idx)}

@@ -19,22 +19,16 @@
 	let deletedImageIds = $state<number[]>([]);
 	let customPrimaryUrl = $state<string | null>(null);
 	const primaryImageUrl = $derived(
-		customPrimaryUrl ?? p.imageUrl ?? (data.images[0]?.imageUrl ?? null)
+		customPrimaryUrl ?? p.imageUrl ?? data.images[0]?.imageUrl ?? null
 	);
 	let newFilesList = $state<{ file: File; url: string }[]>([]);
 	let activePreview = $state<string | null>(null);
 	let fileInput = $state<HTMLInputElement | null>(null);
 	let busy = $state(false);
 
-	const activeImages = $derived(
-		data.images.filter((img) => !deletedImageIds.includes(img.id))
-	);
+	const activeImages = $derived(data.images.filter((img) => !deletedImageIds.includes(img.id)));
 	const displayedMain = $derived(
-		activePreview ??
-			primaryImageUrl ??
-			activeImages[0]?.imageUrl ??
-			newFilesList[0]?.url ??
-			null
+		activePreview ?? primaryImageUrl ?? activeImages[0]?.imageUrl ?? newFilesList[0]?.url ?? null
 	);
 
 	// Isian ukuran sebelum submit gagal (dikirim ulang server agar baris tidak hilang)
@@ -101,9 +95,7 @@
 			const nextAvailable = data.images.find(
 				(img) => !deletedImageIds.includes(img.id) && img.id !== id
 			);
-			customPrimaryUrl = nextAvailable
-				? nextAvailable.imageUrl
-				: (newFilesList[0]?.url ?? null);
+			customPrimaryUrl = nextAvailable ? nextAvailable.imageUrl : (newFilesList[0]?.url ?? null);
 		}
 		if (activePreview === url) {
 			activePreview = null;
@@ -304,9 +296,7 @@
 										<Star size={10} class="fill-current" /> Foto Utama (Katalog)
 									</span>
 								{:else}
-									<span class="badge bg-paper/90 text-ink shadow-sm">
-										Pratinjau Foto
-									</span>
+									<span class="badge bg-paper/90 text-ink shadow-sm"> Pratinjau Foto </span>
 								{/if}
 							</div>
 						{:else}
@@ -343,11 +333,7 @@
 										tabindex="0"
 										title={isDeleted ? 'Ditandai untuk dihapus' : 'Klik untuk melihat pratinjau'}
 									>
-										<img
-											src={img.imageUrl}
-											alt="Foto produk"
-											class="h-full w-full object-cover"
-										/>
+										<img src={img.imageUrl} alt="Foto produk" class="h-full w-full object-cover" />
 										{#if isPrimary}
 											<div class="absolute top-1 left-1">
 												<span class="badge badge-ink !px-1 !py-0.5 !text-[9px] leading-tight">

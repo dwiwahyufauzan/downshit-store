@@ -7,8 +7,7 @@
 	 * AUTH_BG_IMAGE: URL gambar latar belakang untuk bagian kiri login.
 	 * Anda dapat mengganti tautan link gambar ini sesuai keinginan Anda.
 	 * ------------------------------------------------------------------ */
-	const AUTH_BG_IMAGE =
-		'https://i.pinimg.com/1200x/2a/94/a6/2a94a6fe903d096df267bef684e0f4bd.jpg';
+	const AUTH_BG_IMAGE = 'https://i.pinimg.com/1200x/2a/94/a6/2a94a6fe903d096df267bef684e0f4bd.jpg';
 
 	let { form } = $props();
 	let loading = $state(false);
@@ -61,8 +60,8 @@
 					Down<br />shit.
 				</h1>
 				<p class="mt-5 max-w-sm text-sm leading-relaxed text-paper/80 drop-shadow-sm">
-					Streetwear lokal berbahan tebal dari Subang. Masuk untuk memantau pesanan dan belanja lebih
-					cepat.
+					Streetwear lokal berbahan tebal dari Subang. Masuk untuk memantau pesanan dan belanja
+					lebih cepat.
 				</p>
 			</div>
 

@@ -72,3 +72,6 @@ export const CANCELLABLE: readonly OrderStatus[] = [
 ] as const;
 
 export const PAID_STATUSES: readonly OrderStatus[] = ['diproses', 'dikirim', 'selesai'] as const;
+
+/** Jumlah produk per halaman di katalog (/produk) */
+export const CATALOG_PAGE_SIZE = 50;

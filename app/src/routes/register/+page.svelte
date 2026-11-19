@@ -6,8 +6,7 @@
 	 * AUTH_BG_IMAGE: URL gambar latar belakang untuk bagian kiri registrasi.
 	 * Anda dapat mengganti tautan link gambar ini sesuai keinginan Anda.
 	 * ------------------------------------------------------------------ */
-	const AUTH_BG_IMAGE =
-		'https://i.pinimg.com/1200x/3e/74/75/3e7475870effd8fbbe6efd49e9029428.jpg';
+	const AUTH_BG_IMAGE = 'https://i.pinimg.com/1200x/3e/74/75/3e7475870effd8fbbe6efd49e9029428.jpg';
 
 	let { form } = $props();
 	let loading = $state(false);

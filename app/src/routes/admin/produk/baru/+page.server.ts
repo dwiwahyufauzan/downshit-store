@@ -83,10 +83,9 @@ export const actions = {
 		}
 
 		// Upload gambar produk (mendukung multi-gambar; gambar pertama menjadi foto utama)
-		const imageFiles = [
-			...fd.getAll('images'),
-			...fd.getAll('image')
-		].filter((f): f is File => f instanceof File && f.size > 0);
+		const imageFiles = [...fd.getAll('images'), ...fd.getAll('image')].filter(
+			(f): f is File => f instanceof File && f.size > 0
+		);
 
 		const uploadedUrls: string[] = [];
 		for (const file of imageFiles) {

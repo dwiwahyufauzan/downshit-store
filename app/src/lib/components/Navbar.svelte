@@ -128,12 +128,7 @@
 	});
 </script>
 
-<svelte:window
-	bind:scrollY={y}
-	bind:innerWidth
-	onclick={onWindowClick}
-	onkeydown={onWindowKey}
-/>
+<svelte:window bind:scrollY={y} bind:innerWidth onclick={onWindowClick} onkeydown={onWindowKey} />
 
 {#if isStaff && user}
 	<!-- Bar staf: konsisten h-16 dengan beranda, navigasi ada di sidebar, tanpa 'Lihat toko' -->
@@ -201,7 +196,7 @@
 		<!-- Menu mobile drawer untuk navigasi portal admin & owner -->
 		{#if menuOpen}
 			<nav
-				class="border-t border-b border-line bg-paper text-ink shadow-2xl max-h-[calc(100dvh-4rem)] overflow-y-auto md:hidden"
+				class="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-b border-line bg-paper text-ink shadow-2xl md:hidden"
 				aria-label="Menu portal seluler"
 			>
 				<div class="container-shop divide-y divide-line/40 py-4">
@@ -263,7 +258,7 @@
 		<button
 			type="button"
 			transition:fade={{ duration: 150 }}
-			class="fixed inset-0 z-40 bg-black/60 backdrop-blur-md md:hidden cursor-default"
+			class="fixed inset-0 z-40 cursor-default bg-black/60 backdrop-blur-md md:hidden"
 			aria-label="Tutup menu portal"
 			tabindex="-1"
 			onclick={() => (menuOpen = false)}
@@ -460,7 +455,7 @@
 			<!-- Menu mobile -->
 			{#if menuOpen}
 				<nav
-					class="border-t border-b border-line bg-paper text-ink shadow-2xl max-h-[calc(100dvh-4rem)] overflow-y-auto md:hidden"
+					class="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-b border-line bg-paper text-ink shadow-2xl md:hidden"
 					aria-label="Menu seluler"
 				>
 					<div class="container-shop divide-y divide-line">
@@ -494,7 +489,7 @@
 		<button
 			type="button"
 			transition:fade={{ duration: 150 }}
-			class="fixed inset-0 z-40 bg-black/60 backdrop-blur-md md:hidden cursor-default"
+			class="fixed inset-0 z-40 cursor-default bg-black/60 backdrop-blur-md md:hidden"
 			aria-label="Tutup menu"
 			tabindex="-1"
 			onclick={() => {
