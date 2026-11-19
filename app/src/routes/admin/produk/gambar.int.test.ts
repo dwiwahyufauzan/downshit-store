@@ -7,7 +7,7 @@
  *  - Halaman edit (/admin/produk/[id]/edit) mendukung tambah foto baru, ganti foto utama, dan hapus foto
  */
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { copyFileSync, existsSync, rmSync } from 'node:fs';
+import { rmSync } from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
 
@@ -106,7 +106,7 @@ describe('Multi-gambar produk (tambah, edit, dan galeri detail)', () => {
 			await baru.actions.default({
 				request: new Request('http://localhost', { method: 'POST', body: fd }),
 				locals: { user: { id: adminId, role: 'admin' } }
-			} as any);
+			} as never);
 			expect.unreachable('harus redirect ke /admin/produk');
 		} catch (e) {
 			expect(isRedirect(e)).toBe(true);
@@ -132,11 +132,11 @@ describe('Multi-gambar produk (tambah, edit, dan galeri detail)', () => {
 		expect(gallery[2].sortOrder).toBe(2);
 
 		// Verifikasi halaman detail konsumen (/produk/[slug])
-		const detailData: any = await detail.load({
+		const detailData = (await detail.load({
 			params: { slug: prod.slug },
 			locals: { user: null },
 			url: new URL(`http://localhost/produk/${prod.slug}`)
-		} as any);
+		} as never)) as { product: { id: number }; gallery: { imageUrl: string }[] };
 
 		expect(detailData.product.id).toBe(prod.id);
 		expect(detailData.gallery.length).toBe(3);
@@ -160,7 +160,7 @@ describe('Multi-gambar produk (tambah, edit, dan galeri detail)', () => {
 			await baru.actions.default({
 				request: new Request('http://localhost', { method: 'POST', body: fdCreate }),
 				locals: { user: { id: adminId, role: 'admin' } }
-			} as any);
+			} as never);
 		} catch (e) {
 			expect(isRedirect(e)).toBe(true);
 		}
@@ -195,7 +195,7 @@ describe('Multi-gambar produk (tambah, edit, dan galeri detail)', () => {
 				params: { id: String(prod.id) },
 				request: new Request('http://localhost', { method: 'POST', body: fdEdit }),
 				locals: { user: { id: adminId, role: 'admin' } }
-			} as any);
+			} as never);
 		} catch (e) {
 			expect(isRedirect(e)).toBe(true);
 		}

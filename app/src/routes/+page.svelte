@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import Hls from 'hls.js';
 	import ProductCard from '#lib/components/ProductCard.svelte';
@@ -74,7 +73,6 @@
 			cta: 'Lihat celana'
 		}
 	];
-	const slides = HERO_TRAIN_SLIDES;
 	/* ------------------------------------------------------------------
 	 * MODEL_PHOTOS : galeri model. Foto sementara dari Unsplash, ganti dengan
 	 * foto model Downshit. `cls` mengatur lebar kolom, rasio, dan geser vertikal

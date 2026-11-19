@@ -6,16 +6,16 @@ dan manajemen stok. Tiga peran: **konsumen**, **admin**, **owner**.
 
 ## Teknologi
 
-| Lapisan   | Pilihan                                                           |
-| --------- | ----------------------------------------------------------------- |
-| Framework | SvelteKit 3 + Svelte 5 (runes), `adapter-node`                    |
-| Bahasa    | TypeScript                                                        |
-| Database  | SQLite (`better-sqlite3`, mode WAL) lewat Drizzle ORM             |
-| UI        | Tailwind CSS 4, ikon `@lucide/svelte`                             |
-| Auth      | Sesi cookie (token di-hash SHA-256), password Argon2              |
-| Gambar    | `sharp` → WebP + thumbnail, EXIF dibuang                          |
-| Validasi  | Zod                                                               |
-| Tes       | Vitest (unit + integrasi dengan DB SQLite sementara per berkas)   |
+| Lapisan   | Pilihan                                                         |
+| --------- | --------------------------------------------------------------- |
+| Framework | SvelteKit 3 + Svelte 5 (runes), `adapter-node`                  |
+| Bahasa    | TypeScript                                                      |
+| Database  | SQLite (`better-sqlite3`, mode WAL) lewat Drizzle ORM           |
+| UI        | Tailwind CSS 4, ikon `@lucide/svelte`                           |
+| Auth      | Sesi cookie (token di-hash SHA-256), password Argon2            |
+| Gambar    | `sharp` → WebP + thumbnail, EXIF dibuang                        |
+| Validasi  | Zod                                                             |
+| Tes       | Vitest (unit + integrasi dengan DB SQLite sementara per berkas) |
 
 Dokumen perancangan (PRD, UML, wireframe, test case, traceability) ada di folder `../plan/`.
 
@@ -40,19 +40,19 @@ di produksi akun itu wajib ganti password saat login pertama. Lupa password staf
 
 ## Perintah penting
 
-| Perintah                 | Fungsi                                                 |
-| ------------------------ | ------------------------------------------------------ |
-| `npm run check`          | Type-check (`svelte-check`)                            |
-| `npm run lint`           | Prettier + ESLint                                      |
-| `npm run format`         | Rapikan format kode                                    |
-| `npm test`               | Seluruh tes (unit + integrasi)                         |
-| `npm run test:unit`      | Hanya logika murni                                     |
-| `npm run test:int`       | Hanya tes yang memakai DB                              |
-| `npm run build`          | Build produksi ke `build/`                             |
-| `npm start`              | Jalankan build (`node --env-file=.env build`)          |
-| `npm run db:studio`      | Drizzle Studio                                         |
-| `npm run ops:backup`     | Backup database + uploads                              |
-| `npm run ops:maintenance`| Kedaluwarsa pesanan, auto-selesai, bersihkan sesi lama |
+| Perintah                  | Fungsi                                                 |
+| ------------------------- | ------------------------------------------------------ |
+| `npm run check`           | Type-check (`svelte-check`)                            |
+| `npm run lint`            | Prettier + ESLint                                      |
+| `npm run format`          | Rapikan format kode                                    |
+| `npm test`                | Seluruh tes (unit + integrasi)                         |
+| `npm run test:unit`       | Hanya logika murni                                     |
+| `npm run test:int`        | Hanya tes yang memakai DB                              |
+| `npm run build`           | Build produksi ke `build/`                             |
+| `npm start`               | Jalankan build (`node --env-file=.env build`)          |
+| `npm run db:studio`       | Drizzle Studio                                         |
+| `npm run ops:backup`      | Backup database + uploads                              |
+| `npm run ops:maintenance` | Kedaluwarsa pesanan, auto-selesai, bersihkan sesi lama |
 
 Tes integrasi tidak pernah menyentuh `downshit.db`: `tests/global-setup.ts` membuat DB sementara
 (`tests/.tmp-*`, otomatis dihapus setelah tes selesai).

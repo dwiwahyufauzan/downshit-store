@@ -5,7 +5,6 @@
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import SizeEditor from '#lib/components/SizeEditor.svelte';
 	import ImageIcon from '@lucide/svelte/icons/image';
-	import Plus from '@lucide/svelte/icons/plus';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import Star from '@lucide/svelte/icons/star';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -57,7 +56,9 @@
 				dt.items.add(item.file);
 			}
 			fileInput.files = dt.files;
-		} catch {}
+		} catch {
+			// DataTransfer tidak didukung browser ini: biarkan input file apa adanya
+		}
 	}
 
 	function onPick(e: Event) {
@@ -270,7 +271,7 @@
 
 			<div class="space-y-6">
 				<!-- Hidden input untuk tracking foto yang dihapus & foto utama -->
-				{#each deletedImageIds as delId}
+				{#each deletedImageIds as delId (delId)}
 					<input type="hidden" name="deleteImageIds" value={delId} />
 				{/each}
 				<input type="hidden" name="primaryImageUrl" value={primaryImageUrl ?? ''} />

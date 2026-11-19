@@ -5,7 +5,6 @@
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import SizeEditor from '#lib/components/SizeEditor.svelte';
 	import ImageIcon from '@lucide/svelte/icons/image';
-	import Plus from '@lucide/svelte/icons/plus';
 	import Star from '@lucide/svelte/icons/star';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import type { PageProps } from './$types';

@@ -27,7 +27,7 @@ vi.mock('$app/env/private', () => ({
 
 import { rmSync } from 'node:fs';
 import { eq } from 'drizzle-orm';
-import { db, transact } from './db';
+import { db } from './db';
 import {
 	activityLogs,
 	bundleItems,
