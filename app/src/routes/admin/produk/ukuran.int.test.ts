@@ -28,7 +28,7 @@ vi.mock('$app/env/private', () => ({
 import { rmSync } from 'node:fs';
 import { eq } from 'drizzle-orm';
 import { isRedirect } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db';
 import {
 	activityLogs,
 	categories,
@@ -36,8 +36,8 @@ import {
 	products,
 	stockMovements,
 	users
-} from '$lib/server/db/schema';
-import { getSizes } from '$lib/server/sizes';
+} from '#lib/server/db/schema';
+import { getSizes } from '#lib/server/sizes';
 import * as baru from './baru/+page.server';
 import * as edit from './[id]/edit/+page.server';
 import * as daftar from './+page.server';

@@ -27,7 +27,7 @@ vi.mock('$app/env/private', () => ({
 
 import { rmSync } from 'node:fs';
 import { eq } from 'drizzle-orm';
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db';
 import {
 	activityLogs,
 	bundleItems,
@@ -37,9 +37,9 @@ import {
 	products,
 	stockMovements,
 	users
-} from '$lib/server/db/schema';
-import { createInitialSizes } from '$lib/server/product-sizes';
-import { getSizes } from '$lib/server/sizes';
+} from '#lib/server/db/schema';
+import { createInitialSizes } from '#lib/server/product-sizes';
+import { getSizes } from '#lib/server/sizes';
 import * as stok from './+page.server';
 
 afterAll(() => {

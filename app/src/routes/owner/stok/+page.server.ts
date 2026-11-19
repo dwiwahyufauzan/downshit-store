@@ -1,10 +1,10 @@
 import { count, desc, eq } from 'drizzle-orm';
-import { db } from '$lib/server/db';
-import { bundles, products, stockMovements, users } from '$lib/server/db/schema';
-import { requireRole } from '$lib/server/guards';
-import { getSettings } from '$lib/server/settings';
-import { pageParam } from '$lib/server/sql';
-import { getStockOverview } from '$lib/server/stock-overview';
+import { db } from '#lib/server/db';
+import { bundles, products, stockMovements, users } from '#lib/server/db/schema';
+import { requireRole } from '#lib/server/guards';
+import { getSettings } from '#lib/server/settings';
+import { pageParam } from '#lib/server/sql';
+import { getStockOverview } from '#lib/server/stock-overview';
 import type { PageServerLoad } from './$types';
 
 const PER_PAGE = 20;

@@ -1,7 +1,7 @@
 import type { Handle, HandleServerError } from '@sveltejs/kit/hooks';
 import { error, redirect } from '@sveltejs/kit';
 import { CATALOG_REQUIRES_LOGIN, ORIGIN } from '$app/env/private';
-import { SESSION_COOKIE, validateSession } from '$lib/server/auth';
+import { SESSION_COOKIE, validateSession } from '#lib/server/auth';
 
 const ADMIN_AREA = /^\/admin(\/|$)/;
 const OWNER_AREA = /^\/owner(\/|$)/;

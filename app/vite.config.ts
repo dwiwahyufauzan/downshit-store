@@ -25,11 +25,7 @@ export default defineConfig(({ mode }) => {
 						filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 				},
 				adapter: adapter(),
-				// SvelteKit 3 menghapus $lib bawaan; alias ini WAJIB (peringatan deprecated aman diabaikan)
-				alias: {
-					$lib: 'src/lib',
-					'$lib/*': 'src/lib/*'
-				},
+				// SvelteKit 3 tidak lagi menyediakan alias $lib: pakai subpath imports `#lib/*` (lihat "imports" di package.json)
 				// CSRF: izinkan form submission via Quick Tunnel Cloudflare (trycloudflare.com)
 				csrf: {
 					trustedOrigins: ['https://*.trycloudflare.com']

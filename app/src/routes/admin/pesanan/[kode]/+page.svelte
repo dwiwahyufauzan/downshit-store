@@ -1,11 +1,11 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
-	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import Alert from '#lib/components/Alert.svelte';
+	import Breadcrumb from '#lib/components/Breadcrumb.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
 	import MessageCircle from '@lucide/svelte/icons/message-circle';
-	import StatusBadge from '$lib/components/StatusBadge.svelte';
-	import { COURIERS, PAYMENT_STATUS_BADGE, PAYMENT_STATUS_LABEL } from '$lib/constants';
-	import { formatRupiah, formatDate } from '$lib/utils/format';
+	import StatusBadge from '#lib/components/StatusBadge.svelte';
+	import { COURIERS, PAYMENT_STATUS_BADGE, PAYMENT_STATUS_LABEL } from '#lib/constants';
+	import { formatRupiah, formatDate } from '#lib/utils/format';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();

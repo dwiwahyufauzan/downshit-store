@@ -1,13 +1,13 @@
 <script lang="ts">
-	import EmptyState from '$lib/components/EmptyState.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import ProductShelf from '$lib/components/ProductShelf.svelte';
-	import Pagination from '$lib/components/Pagination.svelte';
-	import StatusBadge from '$lib/components/StatusBadge.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import ProductShelf from '#lib/components/ProductShelf.svelte';
+	import Pagination from '#lib/components/Pagination.svelte';
+	import StatusBadge from '#lib/components/StatusBadge.svelte';
 	import { page } from '$app/state';
-	import { ORDER_STATUS, STATUS_LABEL } from '$lib/constants';
-	import { formatDate, formatRupiah } from '$lib/utils/format';
-	import { waktuRelatif } from '$lib/utils/relative-time';
+	import { ORDER_STATUS, STATUS_LABEL } from '#lib/constants';
+	import { formatDate, formatRupiah } from '#lib/utils/format';
+	import { waktuRelatif } from '#lib/utils/relative-time';
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
 	import type { PageProps } from './$types';
 

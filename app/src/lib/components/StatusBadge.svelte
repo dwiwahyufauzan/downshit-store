@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { STATUS_BADGE, STATUS_LABEL, type OrderStatus } from '$lib/constants';
+	import { STATUS_BADGE, STATUS_LABEL, type OrderStatus } from '#lib/constants';
 
 	let { status }: { status: string } = $props();
 

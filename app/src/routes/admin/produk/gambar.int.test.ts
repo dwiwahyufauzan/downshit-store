@@ -34,8 +34,8 @@ vi.mock('$app/env/private', () => ({
 
 import { asc, eq } from 'drizzle-orm';
 import { isRedirect } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { categories, productImages, products, users } from '$lib/server/db/schema';
+import { db } from '#lib/server/db';
+import { categories, productImages, products, users } from '#lib/server/db/schema';
 import * as baru from './baru/+page.server';
 import * as edit from './[id]/edit/+page.server';
 import * as detail from '../../produk/[slug]/+page.server';

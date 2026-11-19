@@ -1,8 +1,8 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import { MAX_UPLOAD_MB } from '$app/env/private';
-import { requireRole } from '$lib/server/guards';
-import { db } from '$lib/server/db';
+import { requireRole } from '#lib/server/guards';
+import { db } from '#lib/server/db';
 import {
 	orderItemComponents,
 	orderItems,
@@ -10,14 +10,14 @@ import {
 	payments,
 	products,
 	shipments
-} from '$lib/server/db/schema';
-import { getSettings } from '$lib/server/settings';
-import { canCancel, type Status } from '$lib/server/order-status';
-import { cancelOrder } from '$lib/server/orders';
-import { completeOrder, orderFail, submitPaymentProof } from '$lib/server/order-flow';
-import { rateLimit } from '$lib/server/rate-limit';
-import { ReviewError, createReview, getOrderReviewables } from '$lib/server/reviews';
-import { deleteImage, saveImage } from '$lib/server/upload';
+} from '#lib/server/db/schema';
+import { getSettings } from '#lib/server/settings';
+import { canCancel, type Status } from '#lib/server/order-status';
+import { cancelOrder } from '#lib/server/orders';
+import { completeOrder, orderFail, submitPaymentProof } from '#lib/server/order-flow';
+import { rateLimit } from '#lib/server/rate-limit';
+import { ReviewError, createReview, getOrderReviewables } from '#lib/server/reviews';
+import { deleteImage, saveImage } from '#lib/server/upload';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {

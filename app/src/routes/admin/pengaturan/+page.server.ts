@@ -1,9 +1,9 @@
 import { fail } from '@sveltejs/kit';
-import { requireRole } from '$lib/server/guards';
-import { getSettings, setSettings } from '$lib/server/settings';
-import { transact } from '$lib/server/db';
-import { settingsSchema } from '$lib/schemas/settings';
-import { logActivity } from '$lib/server/activity';
+import { requireRole } from '#lib/server/guards';
+import { getSettings, setSettings } from '#lib/server/settings';
+import { transact } from '#lib/server/db';
+import { settingsSchema } from '#lib/schemas/settings';
+import { logActivity } from '#lib/server/activity';
 
 export const load = async ({ locals }) => {
 	requireRole(locals, 'admin');

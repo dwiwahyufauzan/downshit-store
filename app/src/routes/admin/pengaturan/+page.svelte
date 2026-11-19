@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import Alert from '$lib/components/Alert.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import Alert from '#lib/components/Alert.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();

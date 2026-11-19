@@ -3,7 +3,7 @@ import type { Tx } from './db';
 import { NOW_ISO, productSizes, products, stockMovements } from './db/schema';
 import { getSizes, syncProductTotal } from './sizes';
 import { INITIAL_STOCK_NOTE } from './product-usage';
-import type { SizeInput } from '$lib/schemas/product';
+import type { SizeInput } from '#lib/schemas/product';
 
 /** Pelanggaran aturan ukuran produk: pesan aman ditampilkan ke admin. */
 export class SizeRuleError extends Error {}

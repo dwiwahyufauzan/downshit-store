@@ -1,7 +1,7 @@
-import { db } from '$lib/server/db';
-import { cartItems, carts } from '$lib/server/db/schema';
+import { db } from '#lib/server/db';
+import { cartItems, carts } from '#lib/server/db/schema';
 import { count, eq } from 'drizzle-orm';
-import { getSettings } from '$lib/server/settings';
+import { getSettings } from '#lib/server/settings';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ locals }) => {

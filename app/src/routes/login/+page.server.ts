@@ -1,12 +1,12 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
-import { db } from '$lib/server/db';
-import { users } from '$lib/server/db/schema';
-import { createSession, homeFor, verifyDummy, verifyPassword } from '$lib/server/auth';
-import { safeNext } from '$lib/server/redirect';
-import { loginSchema } from '$lib/schemas/auth';
-import { clearFailures, clientIp, recordFailure, tooManyAttempts } from '$lib/server/rate-limit';
-import { logActivity } from '$lib/server/activity';
+import { db } from '#lib/server/db';
+import { users } from '#lib/server/db/schema';
+import { createSession, homeFor, verifyDummy, verifyPassword } from '#lib/server/auth';
+import { safeNext } from '#lib/server/redirect';
+import { loginSchema } from '#lib/schemas/auth';
+import { clearFailures, clientIp, recordFailure, tooManyAttempts } from '#lib/server/rate-limit';
+import { logActivity } from '#lib/server/activity';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ locals }) => {

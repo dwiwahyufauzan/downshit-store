@@ -1,8 +1,8 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
-	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { formatDate } from '$lib/utils/format';
+	import Alert from '#lib/components/Alert.svelte';
+	import Breadcrumb from '#lib/components/Breadcrumb.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import { formatDate } from '#lib/utils/format';
 	import Monitor from '@lucide/svelte/icons/monitor';
 	import type { PageProps } from './$types';
 

@@ -1,6 +1,6 @@
-import { requireRole } from '$lib/server/guards';
-import { pageParam } from '$lib/server/sql';
-import { parseRange } from '$lib/server/time';
+import { requireRole } from '#lib/server/guards';
+import { pageParam } from '#lib/server/sql';
+import { parseRange } from '#lib/server/time';
 import {
 	bundleComponentUnits,
 	bundleVsSingle,
@@ -10,7 +10,7 @@ import {
 	salesList,
 	salesSummary,
 	topItems
-} from '$lib/server/reports';
+} from '#lib/server/reports';
 import type { PageServerLoad } from './$types';
 
 const PER_PAGE = 20;

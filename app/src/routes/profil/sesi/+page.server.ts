@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
-import { requireUser } from '$lib/server/guards';
-import { destroyOtherSessions, destroySessionById, listActiveSessions } from '$lib/server/auth';
-import { logActivity } from '$lib/server/activity';
+import { requireUser } from '#lib/server/guards';
+import { destroyOtherSessions, destroySessionById, listActiveSessions } from '#lib/server/auth';
+import { logActivity } from '#lib/server/activity';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {

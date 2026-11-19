@@ -1,16 +1,16 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
-import { db, transact } from '$lib/server/db';
-import { categories, productImages, products, stockMovements } from '$lib/server/db/schema';
-import { requireRole } from '$lib/server/guards';
-import { parseSizeField, productCreateSchema } from '$lib/schemas/product';
-import { createInitialSizes } from '$lib/server/product-sizes';
-import { deleteImage, saveImage } from '$lib/server/upload';
-import { slugify } from '$lib/utils/slug';
-import { uniqueSlug } from '$lib/server/slug';
-import { logActivity } from '$lib/server/activity';
-import { INITIAL_STOCK_NOTE } from '$lib/server/product-usage';
-import { dbErrno } from '$lib/server/db/retry';
+import { db, transact } from '#lib/server/db';
+import { categories, productImages, products, stockMovements } from '#lib/server/db/schema';
+import { requireRole } from '#lib/server/guards';
+import { parseSizeField, productCreateSchema } from '#lib/schemas/product';
+import { createInitialSizes } from '#lib/server/product-sizes';
+import { deleteImage, saveImage } from '#lib/server/upload';
+import { slugify } from '#lib/utils/slug';
+import { uniqueSlug } from '#lib/server/slug';
+import { logActivity } from '#lib/server/activity';
+import { INITIAL_STOCK_NOTE } from '#lib/server/product-usage';
+import { dbErrno } from '#lib/server/db/retry';
 
 export type ProductFormErrors = {
 	name?: string[];

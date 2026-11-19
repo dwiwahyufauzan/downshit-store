@@ -1,10 +1,10 @@
 import { error, fail } from '@sveltejs/kit';
 import { and, desc, eq, sql } from 'drizzle-orm';
-import { db } from '$lib/server/db';
-import { orders, payments, shipments, users } from '$lib/server/db/schema';
-import { requireRole } from '$lib/server/guards';
-import { idParam } from '$lib/server/sql';
-import { resetCustomerPassword, setCustomerActive } from '$lib/server/customer-admin';
+import { db } from '#lib/server/db';
+import { orders, payments, shipments, users } from '#lib/server/db/schema';
+import { requireRole } from '#lib/server/guards';
+import { idParam } from '#lib/server/sql';
+import { resetCustomerPassword, setCustomerActive } from '#lib/server/customer-admin';
 
 export const load = async ({ params, locals }) => {
 	requireRole(locals, 'admin');

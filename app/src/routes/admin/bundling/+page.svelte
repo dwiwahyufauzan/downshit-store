@@ -1,9 +1,9 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { formatRupiah } from '$lib/utils/format';
-	import { thumbOf } from '$lib/utils/image';
+	import Alert from '#lib/components/Alert.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import { formatRupiah } from '#lib/utils/format';
+	import { thumbOf } from '#lib/utils/image';
 	import Plus from '@lucide/svelte/icons/plus';
 	import type { PageProps } from './$types';
 

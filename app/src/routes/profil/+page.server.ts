@@ -1,18 +1,18 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
-import { db } from '$lib/server/db';
-import { users } from '$lib/server/db/schema';
-import { requireUser } from '$lib/server/guards';
+import { db } from '#lib/server/db';
+import { users } from '#lib/server/db/schema';
+import { requireUser } from '#lib/server/guards';
 import {
 	createSession,
 	destroyAllSessions,
 	hashPassword,
 	homeFor,
 	verifyPassword
-} from '$lib/server/auth';
-import { changePasswordSchema, profileSchema } from '$lib/schemas/auth';
-import { rateLimit } from '$lib/server/rate-limit';
-import { logActivity } from '$lib/server/activity';
+} from '#lib/server/auth';
+import { changePasswordSchema, profileSchema } from '#lib/schemas/auth';
+import { rateLimit } from '#lib/server/rate-limit';
+import { logActivity } from '#lib/server/activity';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {

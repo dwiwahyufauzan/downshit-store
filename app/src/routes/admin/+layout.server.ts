@@ -1,7 +1,7 @@
 import { count, inArray } from 'drizzle-orm';
-import { db } from '$lib/server/db';
-import { orders } from '$lib/server/db/schema';
-import { requireRole } from '$lib/server/guards';
+import { db } from '#lib/server/db';
+import { orders } from '#lib/server/db/schema';
+import { requireRole } from '#lib/server/guards';
 
 export const load = async ({ locals }) => {
 	const staff = requireRole(locals, 'admin');

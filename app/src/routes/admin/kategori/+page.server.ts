@@ -1,14 +1,14 @@
 import { fail } from '@sveltejs/kit';
 import { and, count, eq, isNull, ne, sql } from 'drizzle-orm';
-import { db, transact } from '$lib/server/db';
-import { dbErrno } from '$lib/server/db/retry';
-import { categories, products } from '$lib/server/db/schema';
-import { requireRole } from '$lib/server/guards';
-import { categorySchema } from '$lib/schemas/category';
-import { slugify } from '$lib/utils/slug';
-import { uniqueSlug } from '$lib/server/slug';
-import { logActivity } from '$lib/server/activity';
-import { idParam } from '$lib/server/sql';
+import { db, transact } from '#lib/server/db';
+import { dbErrno } from '#lib/server/db/retry';
+import { categories, products } from '#lib/server/db/schema';
+import { requireRole } from '#lib/server/guards';
+import { categorySchema } from '#lib/schemas/category';
+import { slugify } from '#lib/utils/slug';
+import { uniqueSlug } from '#lib/server/slug';
+import { logActivity } from '#lib/server/activity';
+import { idParam } from '#lib/server/sql';
 
 export const load = async ({ locals }) => {
 	requireRole(locals, 'admin');

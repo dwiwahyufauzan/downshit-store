@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { SESSION_COOKIE, destroySession } from '$lib/server/auth';
+import { SESSION_COOKIE, destroySession } from '#lib/server/auth';
 import type { RequestHandler } from './$types';
 
 // Hanya POST (bukan GET) agar logout tidak bisa dipicu lewat <img src="/logout">; CSRF dijaga cek Origin.

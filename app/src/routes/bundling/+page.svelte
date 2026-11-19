@@ -1,8 +1,8 @@
 <script lang="ts">
-	import EmptyState from '$lib/components/EmptyState.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import ProductCard from '$lib/components/ProductCard.svelte';
-	import { formatRupiah } from '$lib/utils/format';
+	import EmptyState from '#lib/components/EmptyState.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import ProductCard from '#lib/components/ProductCard.svelte';
+	import { formatRupiah } from '#lib/utils/format';
 	import Search from '@lucide/svelte/icons/search';
 	import X from '@lucide/svelte/icons/x';
 	import type { PageProps } from './$types';

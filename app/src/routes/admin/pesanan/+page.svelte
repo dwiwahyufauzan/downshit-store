@@ -1,16 +1,16 @@
 <script lang="ts">
-	import EmptyState from '$lib/components/EmptyState.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import Pagination from '$lib/components/Pagination.svelte';
-	import StatusBadge from '$lib/components/StatusBadge.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Pagination from '#lib/components/Pagination.svelte';
+	import StatusBadge from '#lib/components/StatusBadge.svelte';
 	import { page } from '$app/state';
 	import {
 		ORDER_STATUS,
 		PAYMENT_STATUS_BADGE,
 		PAYMENT_STATUS_LABEL,
 		STATUS_LABEL
-	} from '$lib/constants';
-	import { formatRupiah, formatDate } from '$lib/utils/format';
+	} from '#lib/constants';
+	import { formatRupiah, formatDate } from '#lib/utils/format';
 	import X from '@lucide/svelte/icons/x';
 	import type { PageProps } from './$types';
 

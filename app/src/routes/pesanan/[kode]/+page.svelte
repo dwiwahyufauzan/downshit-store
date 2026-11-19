@@ -1,12 +1,12 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
-	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import StatusBadge from '$lib/components/StatusBadge.svelte';
-	import StarInput from '$lib/components/StarInput.svelte';
-	import Stars from '$lib/components/Stars.svelte';
-	import { PAYMENT_STATUS_BADGE, PAYMENT_STATUS_LABEL } from '$lib/constants';
-	import { formatDate, formatRupiah } from '$lib/utils/format';
+	import Alert from '#lib/components/Alert.svelte';
+	import Breadcrumb from '#lib/components/Breadcrumb.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import StatusBadge from '#lib/components/StatusBadge.svelte';
+	import StarInput from '#lib/components/StarInput.svelte';
+	import Stars from '#lib/components/Stars.svelte';
+	import { PAYMENT_STATUS_BADGE, PAYMENT_STATUS_LABEL } from '#lib/constants';
+	import { formatDate, formatRupiah } from '#lib/utils/format';
 	import MessageCircle from '@lucide/svelte/icons/message-circle';
 	import Ban from '@lucide/svelte/icons/ban';
 	import Check from '@lucide/svelte/icons/check';

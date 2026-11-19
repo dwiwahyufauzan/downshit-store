@@ -1,11 +1,11 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
-	import Pagination from '$lib/components/Pagination.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import StockBadge from '$lib/components/StockBadge.svelte';
-	import { formatRupiah } from '$lib/utils/format';
-	import { thumbOf } from '$lib/utils/image';
+	import Alert from '#lib/components/Alert.svelte';
+	import Pagination from '#lib/components/Pagination.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import StockBadge from '#lib/components/StockBadge.svelte';
+	import { formatRupiah } from '#lib/utils/format';
+	import { thumbOf } from '#lib/utils/image';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Search from '@lucide/svelte/icons/search';
 	import X from '@lucide/svelte/icons/x';

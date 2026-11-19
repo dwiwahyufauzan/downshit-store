@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
-	import Alert from '$lib/components/Alert.svelte';
+	import Alert from '#lib/components/Alert.svelte';
 	import ImageIcon from '@lucide/svelte/icons/image';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
-	import { effectiveBundleStock } from '$lib/utils/bundle';
-	import { formatRupiah } from '$lib/utils/format';
-	import { thumbOf } from '$lib/utils/image';
+	import { effectiveBundleStock } from '#lib/utils/bundle';
+	import { formatRupiah } from '#lib/utils/format';
+	import { thumbOf } from '#lib/utils/image';
 
 	type Product = { id: number; name: string; price: number; stock: number; available?: boolean };
 	type Item = { productId: number; quantity: number };

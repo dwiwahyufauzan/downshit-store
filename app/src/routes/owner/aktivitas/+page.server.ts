@@ -1,10 +1,10 @@
 import { and, count, desc, eq, gte, like, lte, or } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
-import { db } from '$lib/server/db';
-import { activityLogs, orders, payments, users } from '$lib/server/db/schema';
-import { requireRole } from '$lib/server/guards';
-import { pageParam } from '$lib/server/sql';
-import { parseRange } from '$lib/server/time';
+import { db } from '#lib/server/db';
+import { activityLogs, orders, payments, users } from '#lib/server/db/schema';
+import { requireRole } from '#lib/server/guards';
+import { pageParam } from '#lib/server/sql';
+import { parseRange } from '#lib/server/time';
 import type { PageServerLoad } from './$types';
 
 const PER_PAGE = 20;

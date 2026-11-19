@@ -1,8 +1,8 @@
 import { count, desc, eq } from 'drizzle-orm';
-import { db } from '$lib/server/db';
-import { purchases, users } from '$lib/server/db/schema';
-import { requireRole } from '$lib/server/guards';
-import { pageParam } from '$lib/server/sql';
+import { db } from '#lib/server/db';
+import { purchases, users } from '#lib/server/db/schema';
+import { requireRole } from '#lib/server/guards';
+import { pageParam } from '#lib/server/sql';
 
 const PER_PAGE = 15;
 

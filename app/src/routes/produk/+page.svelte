@@ -1,8 +1,8 @@
 <script lang="ts">
-	import EmptyState from '$lib/components/EmptyState.svelte';
-	import Pagination from '$lib/components/Pagination.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import ProductCard from '$lib/components/ProductCard.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
+	import Pagination from '#lib/components/Pagination.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import ProductCard from '#lib/components/ProductCard.svelte';
 	import { page } from '$app/state';
 	import Search from '@lucide/svelte/icons/search';
 	import X from '@lucide/svelte/icons/x';

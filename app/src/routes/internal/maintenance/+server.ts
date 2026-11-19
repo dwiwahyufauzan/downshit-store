@@ -1,10 +1,10 @@
 import { error, json } from '@sveltejs/kit';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { CRON_SECRET } from '$app/env/private';
-import { purgeExpiredSessions } from '$lib/server/auth';
-import { purgeOld } from '$lib/server/rate-limit';
-import { expireUnpaidOrders } from '$lib/server/orders';
-import { autoCompleteShippedOrders } from '$lib/server/order-flow';
+import { purgeExpiredSessions } from '#lib/server/auth';
+import { purgeOld } from '#lib/server/rate-limit';
+import { expireUnpaidOrders } from '#lib/server/orders';
+import { autoCompleteShippedOrders } from '#lib/server/order-flow';
 import type { RequestHandler } from './$types';
 
 const digest = (s: string) => createHash('sha256').update(s).digest();

@@ -1,10 +1,10 @@
 import { fail } from '@sveltejs/kit';
 import { and, count, desc, eq, like, or, sql } from 'drizzle-orm';
-import { db } from '$lib/server/db';
-import { orders, users } from '$lib/server/db/schema';
-import { requireRole } from '$lib/server/guards';
-import { escapeLike, idParam, pageParam } from '$lib/server/sql';
-import { resetCustomerPassword, setCustomerActive } from '$lib/server/customer-admin';
+import { db } from '#lib/server/db';
+import { orders, users } from '#lib/server/db/schema';
+import { requireRole } from '#lib/server/guards';
+import { escapeLike, idParam, pageParam } from '#lib/server/sql';
+import { resetCustomerPassword, setCustomerActive } from '#lib/server/customer-admin';
 
 const PER_PAGE = 15;
 

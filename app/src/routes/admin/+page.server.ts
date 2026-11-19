@@ -1,11 +1,11 @@
 import { and, asc, count, desc, eq, gte, isNull, lte } from 'drizzle-orm';
-import { db } from '$lib/server/db';
-import { orders, products, users } from '$lib/server/db/schema';
-import { requireRole } from '$lib/server/guards';
-import { getSettings } from '$lib/server/settings';
-import { getSizesFor } from '$lib/server/sizes';
-import { runLightMaintenance } from '$lib/server/order-flow';
-import { todayWib, wibStart } from '$lib/server/time';
+import { db } from '#lib/server/db';
+import { orders, products, users } from '#lib/server/db/schema';
+import { requireRole } from '#lib/server/guards';
+import { getSettings } from '#lib/server/settings';
+import { getSizesFor } from '#lib/server/sizes';
+import { runLightMaintenance } from '#lib/server/order-flow';
+import { todayWib, wibStart } from '#lib/server/time';
 
 export const load = async ({ locals }) => {
 	requireRole(locals, 'admin');

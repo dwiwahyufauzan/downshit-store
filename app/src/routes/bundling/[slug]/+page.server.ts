@@ -1,12 +1,12 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
-import { db } from '$lib/server/db';
-import { bundleItems, bundles, products } from '$lib/server/db/schema';
-import { addToCart } from '$lib/server/cart';
-import { getSettings } from '$lib/server/settings';
-import { getSizes } from '$lib/server/sizes';
-import { effectiveBundleStock } from '$lib/utils/bundle';
+import { db } from '#lib/server/db';
+import { bundleItems, bundles, products } from '#lib/server/db/schema';
+import { addToCart } from '#lib/server/cart';
+import { getSettings } from '#lib/server/settings';
+import { getSizes } from '#lib/server/sizes';
+import { effectiveBundleStock } from '#lib/utils/bundle';
 import type { Actions, PageServerLoad } from './$types';
 
 const addSchema = z.object({

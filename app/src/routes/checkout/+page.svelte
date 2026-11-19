@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { thumbOf } from '$lib/utils/image';
-	import Alert from '$lib/components/Alert.svelte';
-	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { formatRupiah } from '$lib/utils/format';
+	import { thumbOf } from '#lib/utils/image';
+	import Alert from '#lib/components/Alert.svelte';
+	import Breadcrumb from '#lib/components/Breadcrumb.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import { formatRupiah } from '#lib/utils/format';
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
 	import Clock from '@lucide/svelte/icons/clock';
 	import Landmark from '@lucide/svelte/icons/landmark';

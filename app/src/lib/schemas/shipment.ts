@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { COURIERS } from '$lib/constants';
+import { COURIERS } from '#lib/constants';
 
 export const shipmentSchema = z.object({
 	courier: z.enum(COURIERS, { error: 'Pilih kurir dari daftar' }),

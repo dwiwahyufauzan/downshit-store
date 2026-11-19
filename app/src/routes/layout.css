@@ -633,7 +633,7 @@
 	}
 }
 
-/* Muncul saat digulir (lihat $lib/actions/reveal) */
+/* Muncul saat digulir (lihat #lib/actions/reveal) */
 [data-reveal='pending'] {
 	opacity: 0;
 	transform: translateY(2rem);

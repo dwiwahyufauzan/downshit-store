@@ -1,7 +1,7 @@
 <script lang="ts">
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import Pagination from '$lib/components/Pagination.svelte';
-	import { formatRupiah } from '$lib/utils/format';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Pagination from '#lib/components/Pagination.svelte';
+	import { formatRupiah } from '#lib/utils/format';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();

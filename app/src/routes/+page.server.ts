@@ -1,8 +1,8 @@
 import { and, count, desc, eq, isNull } from 'drizzle-orm';
-import { db } from '$lib/server/db';
-import { bundleItems, bundles, categories, products } from '$lib/server/db/schema';
-import { effectiveBundleStock } from '$lib/utils/bundle';
-import { getProductStats } from '$lib/server/recommendations';
+import { db } from '#lib/server/db';
+import { bundleItems, bundles, categories, products } from '#lib/server/db/schema';
+import { effectiveBundleStock } from '#lib/utils/bundle';
+import { getProductStats } from '#lib/server/recommendations';
 
 export const load = async () => {
 	const latestProducts = await db

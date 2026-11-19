@@ -1,11 +1,11 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import Pagination from '$lib/components/Pagination.svelte';
-	import Stars from '$lib/components/Stars.svelte';
+	import Alert from '#lib/components/Alert.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Pagination from '#lib/components/Pagination.svelte';
+	import Stars from '#lib/components/Stars.svelte';
 	import { page } from '$app/state';
-	import { formatDate } from '$lib/utils/format';
+	import { formatDate } from '#lib/utils/format';
 	import Search from '@lucide/svelte/icons/search';
 	import X from '@lucide/svelte/icons/x';
 	import type { PageProps } from './$types';

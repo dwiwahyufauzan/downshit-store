@@ -1,7 +1,7 @@
 <script lang="ts">
-	import ProductCard from '$lib/components/ProductCard.svelte';
+	import ProductCard from '#lib/components/ProductCard.svelte';
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
-	import type { RecProduct } from '$lib/server/recommendations';
+	import type { RecProduct } from '#lib/server/recommendations';
 
 	/** Rak rekomendasi: judul + deretan kartu produk (4 kolom di desktop, 2 di mobile). */
 	let {

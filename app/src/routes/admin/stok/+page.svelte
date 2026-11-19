@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
-	import Alert from '$lib/components/Alert.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import Pagination from '$lib/components/Pagination.svelte';
-	import StockBadge from '$lib/components/StockBadge.svelte';
+	import Alert from '#lib/components/Alert.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Pagination from '#lib/components/Pagination.svelte';
+	import StockBadge from '#lib/components/StockBadge.svelte';
 	import Search from '@lucide/svelte/icons/search';
 	import X from '@lucide/svelte/icons/x';
-	import { formatRupiah, formatDate } from '$lib/utils/format';
+	import { formatRupiah, formatDate } from '#lib/utils/format';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();

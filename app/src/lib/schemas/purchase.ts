@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { intField, optionalText } from './common';
-import { normalizeSize } from '$lib/utils/sizes';
+import { normalizeSize } from '#lib/utils/sizes';
 
 /** true bila `YYYY-MM-DD` adalah tanggal kalender nyata (menolak 2026-02-31 dan tanggal kosong). */
 const isRealDate = (s: string) => {

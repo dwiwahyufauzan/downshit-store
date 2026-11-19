@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { intField, optionalText, textField } from './common';
-import { isValidSize, normalizeSize } from '$lib/utils/sizes';
+import { isValidSize, normalizeSize } from '#lib/utils/sizes';
 
 const base = {
 	name: textField('Nama produk', 3, 150),

@@ -2,13 +2,13 @@
 	import Printer from '@lucide/svelte/icons/printer';
 	import Download from '@lucide/svelte/icons/download';
 	import { page as pageState } from '$app/state';
-	import Alert from '$lib/components/Alert.svelte';
-	import BarChart from '$lib/components/BarChart.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import Pagination from '$lib/components/Pagination.svelte';
-	import StatusBadge from '$lib/components/StatusBadge.svelte';
-	import { formatDate, formatRupiah } from '$lib/utils/format';
+	import Alert from '#lib/components/Alert.svelte';
+	import BarChart from '#lib/components/BarChart.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Pagination from '#lib/components/Pagination.svelte';
+	import StatusBadge from '#lib/components/StatusBadge.svelte';
+	import { formatDate, formatRupiah } from '#lib/utils/format';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();

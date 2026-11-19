@@ -1,11 +1,11 @@
 import { redirect } from '@sveltejs/kit';
 import { and, count, desc, eq, sql } from 'drizzle-orm';
-import { requireRole } from '$lib/server/guards';
-import { db } from '$lib/server/db';
-import { orders } from '$lib/server/db/schema';
-import { pageParam } from '$lib/server/sql';
-import { getBestSellers, getForUser, getTopRated } from '$lib/server/recommendations';
-import { ORDER_STATUS, type OrderStatus } from '$lib/constants';
+import { requireRole } from '#lib/server/guards';
+import { db } from '#lib/server/db';
+import { orders } from '#lib/server/db/schema';
+import { pageParam } from '#lib/server/sql';
+import { getBestSellers, getForUser, getTopRated } from '#lib/server/recommendations';
+import { ORDER_STATUS, type OrderStatus } from '#lib/constants';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {

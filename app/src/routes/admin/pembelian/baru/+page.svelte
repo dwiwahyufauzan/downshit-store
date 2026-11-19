@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
-	import Alert from '$lib/components/Alert.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
-	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { formatRupiah } from '$lib/utils/format';
+	import Alert from '#lib/components/Alert.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
+	import Breadcrumb from '#lib/components/Breadcrumb.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import { formatRupiah } from '#lib/utils/format';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();

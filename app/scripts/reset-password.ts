@@ -1,7 +1,7 @@
 /**
  * Reset password akun (terutama staf: owner/admin) lewat CLI. Tidak ada reset staf lewat web
  * (mencegah pengambilalihan akun). BR-24: akun ditandai `must_change_password` dan semua
- * sesinya dihapus. Skrip ini TIDAK mengimpor `$lib`/`$app` (dijalankan `tsx`, bukan Vite).
+ * sesinya dihapus. Skrip ini TIDAK mengimpor `#lib`/`$app` (dijalankan `tsx`, bukan Vite).
  *
  * Pakai:  npm run db:reset-password -- <email>
  *    atau npx tsx scripts/reset-password.ts <email>

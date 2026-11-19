@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { page as pageState } from '$app/state';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import Pagination from '$lib/components/Pagination.svelte';
-	import StockBadge from '$lib/components/StockBadge.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Pagination from '#lib/components/Pagination.svelte';
+	import StockBadge from '#lib/components/StockBadge.svelte';
 	import Search from '@lucide/svelte/icons/search';
-	import { formatDate, formatRupiah } from '$lib/utils/format';
+	import { formatDate, formatRupiah } from '#lib/utils/format';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();

@@ -1,6 +1,6 @@
 import { error, fail } from '@sveltejs/kit';
 import { and, desc, eq } from 'drizzle-orm';
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db';
 import {
 	activityLogs,
 	orderItemComponents,
@@ -10,19 +10,19 @@ import {
 	products,
 	shipments,
 	users
-} from '$lib/server/db/schema';
-import { requireRole } from '$lib/server/guards';
+} from '#lib/server/db/schema';
+import { requireRole } from '#lib/server/guards';
 import {
 	confirmPayment,
 	orderFail,
 	rejectPayment,
 	shipOrder,
 	updateShipment
-} from '$lib/server/order-flow';
-import { cancelOrder } from '$lib/server/orders';
-import { allowedNext, canCancel, type Status } from '$lib/server/order-status';
-import { shipmentSchema } from '$lib/schemas/shipment';
-import { getSettings } from '$lib/server/settings';
+} from '#lib/server/order-flow';
+import { cancelOrder } from '#lib/server/orders';
+import { allowedNext, canCancel, type Status } from '#lib/server/order-status';
+import { shipmentSchema } from '#lib/schemas/shipment';
+import { getSettings } from '#lib/server/settings';
 
 export const load = async ({ params, locals }) => {
 	requireRole(locals, 'admin');

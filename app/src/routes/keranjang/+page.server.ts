@@ -1,13 +1,13 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { z } from 'zod';
-import { requireRole } from '$lib/server/guards';
+import { requireRole } from '#lib/server/guards';
 import {
 	clearCart,
 	getCartDetails,
 	removeCartItem,
 	updateCartItemQuantity
-} from '$lib/server/cart';
-import { getSettings } from '$lib/server/settings';
+} from '#lib/server/cart';
+import { getSettings } from '#lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
 
 const updateSchema = z.object({

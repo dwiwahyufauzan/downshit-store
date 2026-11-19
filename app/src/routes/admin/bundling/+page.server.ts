@@ -1,6 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { and, desc, eq, isNull, ne, or } from 'drizzle-orm';
-import { db, transact } from '$lib/server/db';
+import { db, transact } from '#lib/server/db';
 import {
 	bundleItems,
 	bundles,
@@ -8,13 +8,13 @@ import {
 	orderItems,
 	products,
 	stockMovements
-} from '$lib/server/db/schema';
-import { requireRole } from '$lib/server/guards';
-import { idParam } from '$lib/server/sql';
-import { deleteImageIfUnused } from '$lib/server/image-refs';
-import { logActivity } from '$lib/server/activity';
-import { INITIAL_BUNDLE_STOCK_NOTE } from '$lib/server/product-usage';
-import { effectiveBundleStock } from '$lib/utils/bundle';
+} from '#lib/server/db/schema';
+import { requireRole } from '#lib/server/guards';
+import { idParam } from '#lib/server/sql';
+import { deleteImageIfUnused } from '#lib/server/image-refs';
+import { logActivity } from '#lib/server/activity';
+import { INITIAL_BUNDLE_STOCK_NOTE } from '#lib/server/product-usage';
+import { effectiveBundleStock } from '#lib/utils/bundle';
 
 export const load = async ({ locals }) => {
 	requireRole(locals, 'admin');

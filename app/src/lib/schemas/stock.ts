@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { intField, textField } from './common';
-import { normalizeSize } from '$lib/utils/sizes';
+import { normalizeSize } from '#lib/utils/sizes';
 
 export const adjustSchema = z.object({
 	kind: z.enum(['product', 'bundle'], { error: 'Jenis item tidak valid' }),

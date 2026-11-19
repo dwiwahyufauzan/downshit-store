@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, isNull, like, or } from 'drizzle-orm';
-import { db } from '$lib/server/db';
-import { bundleItems, bundles, products } from '$lib/server/db/schema';
-import { effectiveBundleStock } from '$lib/utils/bundle';
+import { db } from '#lib/server/db';
+import { bundleItems, bundles, products } from '#lib/server/db/schema';
+import { effectiveBundleStock } from '#lib/utils/bundle';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {

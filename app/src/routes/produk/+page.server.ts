@@ -1,9 +1,9 @@
 import { and, asc, count, desc, eq, isNull, like } from 'drizzle-orm';
-import { db } from '$lib/server/db';
-import { categories, products } from '$lib/server/db/schema';
-import { escapeLike, pageParam } from '$lib/server/sql';
-import { getProductStats, ratingScoreOf, soldOf } from '$lib/server/recommendations';
-import { CATALOG_PAGE_SIZE } from '$lib/constants';
+import { db } from '#lib/server/db';
+import { categories, products } from '#lib/server/db/schema';
+import { escapeLike, pageParam } from '#lib/server/sql';
+import { getProductStats, ratingScoreOf, soldOf } from '#lib/server/recommendations';
+import { CATALOG_PAGE_SIZE } from '#lib/constants';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {

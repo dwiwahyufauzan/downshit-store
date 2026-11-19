@@ -1,8 +1,8 @@
 import { error } from '@sveltejs/kit';
-import { requireRole } from '$lib/server/guards';
-import { parseRange, wibStamp } from '$lib/server/time';
-import { parseStatus, salesList } from '$lib/server/reports';
-import { toCsv } from '$lib/utils/csv';
+import { requireRole } from '#lib/server/guards';
+import { parseRange, wibStamp } from '#lib/server/time';
+import { parseStatus, salesList } from '#lib/server/reports';
+import { toCsv } from '#lib/utils/csv';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ locals, url }) => {

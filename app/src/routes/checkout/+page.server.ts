@@ -1,12 +1,12 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
-import { requireRole } from '$lib/server/guards';
-import { db } from '$lib/server/db';
-import { users } from '$lib/server/db/schema';
-import { getCartDetails } from '$lib/server/cart';
-import { getSettings } from '$lib/server/settings';
-import { createOrderFromCart, OrderError } from '$lib/server/orders';
-import { checkoutSchema } from '$lib/schemas/checkout';
+import { requireRole } from '#lib/server/guards';
+import { db } from '#lib/server/db';
+import { users } from '#lib/server/db/schema';
+import { getCartDetails } from '#lib/server/cart';
+import { getSettings } from '#lib/server/settings';
+import { createOrderFromCart, OrderError } from '#lib/server/orders';
+import { checkoutSchema } from '#lib/schemas/checkout';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {

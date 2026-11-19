@@ -1,14 +1,14 @@
 import { fail } from '@sveltejs/kit';
 import { and, count, desc, eq, isNull } from 'drizzle-orm';
-import { db, transact } from '$lib/server/db';
-import { bundles, products, stockMovements, users } from '$lib/server/db/schema';
-import { requireRole } from '$lib/server/guards';
-import { getStockOverview } from '$lib/server/stock-overview';
-import { adjustSchema } from '$lib/schemas/stock';
-import { setBundleStock, setProductStock } from '$lib/server/stock';
-import { getSizes } from '$lib/server/sizes';
-import { logActivity } from '$lib/server/activity';
-import { pageParam } from '$lib/server/sql';
+import { db, transact } from '#lib/server/db';
+import { bundles, products, stockMovements, users } from '#lib/server/db/schema';
+import { requireRole } from '#lib/server/guards';
+import { getStockOverview } from '#lib/server/stock-overview';
+import { adjustSchema } from '#lib/schemas/stock';
+import { setBundleStock, setProductStock } from '#lib/server/stock';
+import { getSizes } from '#lib/server/sizes';
+import { logActivity } from '#lib/server/activity';
+import { pageParam } from '#lib/server/sql';
 
 const MOVEMENTS_PER_PAGE = 20;
 

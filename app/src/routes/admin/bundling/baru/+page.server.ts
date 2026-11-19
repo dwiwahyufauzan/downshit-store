@@ -1,16 +1,16 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { and, eq, isNull } from 'drizzle-orm';
-import { db, transact } from '$lib/server/db';
-import { bundleItems, bundles, products, stockMovements } from '$lib/server/db/schema';
-import { dbErrno } from '$lib/server/db/retry';
-import { BundleRuleError, checkBundleComponents } from '$lib/server/bundle-validate';
-import { requireRole } from '$lib/server/guards';
-import { bundleCreateSchema } from '$lib/schemas/bundle';
-import { deleteImage, saveImage } from '$lib/server/upload';
-import { slugify } from '$lib/utils/slug';
-import { uniqueSlug } from '$lib/server/slug';
-import { logActivity } from '$lib/server/activity';
-import { INITIAL_BUNDLE_STOCK_NOTE } from '$lib/server/product-usage';
+import { db, transact } from '#lib/server/db';
+import { bundleItems, bundles, products, stockMovements } from '#lib/server/db/schema';
+import { dbErrno } from '#lib/server/db/retry';
+import { BundleRuleError, checkBundleComponents } from '#lib/server/bundle-validate';
+import { requireRole } from '#lib/server/guards';
+import { bundleCreateSchema } from '#lib/schemas/bundle';
+import { deleteImage, saveImage } from '#lib/server/upload';
+import { slugify } from '#lib/utils/slug';
+import { uniqueSlug } from '#lib/server/slug';
+import { logActivity } from '#lib/server/activity';
+import { INITIAL_BUNDLE_STOCK_NOTE } from '#lib/server/product-usage';
 
 export type BundleFormErrors = {
 	name?: string[];

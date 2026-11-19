@@ -2,16 +2,16 @@
 	import { onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import Hls from 'hls.js';
-	import ProductCard from '$lib/components/ProductCard.svelte';
-	import WhatsAppShortcut from '$lib/components/WhatsAppShortcut.svelte';
+	import ProductCard from '#lib/components/ProductCard.svelte';
+	import WhatsAppShortcut from '#lib/components/WhatsAppShortcut.svelte';
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
 	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import X from '@lucide/svelte/icons/x';
-	import { thumbOf } from '$lib/utils/image';
-	import { formatRupiah } from '$lib/utils/format';
-	import { reveal } from '$lib/actions/reveal';
+	import { thumbOf } from '#lib/utils/image';
+	import { formatRupiah } from '#lib/utils/format';
+	import { reveal } from '#lib/actions/reveal';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();

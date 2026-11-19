@@ -1,10 +1,10 @@
 import { fail } from '@sveltejs/kit';
 import { and, count, desc, eq, like, or } from 'drizzle-orm';
-import { db } from '$lib/server/db';
-import { orders, products, reviews, users } from '$lib/server/db/schema';
-import { requireRole } from '$lib/server/guards';
-import { escapeLike, idParam, pageParam } from '$lib/server/sql';
-import { logActivity } from '$lib/server/activity';
+import { db } from '#lib/server/db';
+import { orders, products, reviews, users } from '#lib/server/db/schema';
+import { requireRole } from '#lib/server/guards';
+import { escapeLike, idParam, pageParam } from '#lib/server/sql';
+import { logActivity } from '#lib/server/activity';
 import type { Actions, PageServerLoad } from './$types';
 
 const PER_PAGE = 15;

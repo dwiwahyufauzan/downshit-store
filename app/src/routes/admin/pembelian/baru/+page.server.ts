@@ -1,12 +1,12 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { isNull } from 'drizzle-orm';
-import { db } from '$lib/server/db';
-import { products } from '$lib/server/db/schema';
-import { requireRole } from '$lib/server/guards';
-import { purchaseSchema } from '$lib/schemas/purchase';
-import { PurchaseRuleError, createPurchase } from '$lib/server/purchase';
-import { todayWib } from '$lib/server/time';
-import { getSizesFor } from '$lib/server/sizes';
+import { db } from '#lib/server/db';
+import { products } from '#lib/server/db/schema';
+import { requireRole } from '#lib/server/guards';
+import { purchaseSchema } from '#lib/schemas/purchase';
+import { PurchaseRuleError, createPurchase } from '#lib/server/purchase';
+import { todayWib } from '#lib/server/time';
+import { getSizesFor } from '#lib/server/sizes';
 
 export const load = async ({ locals }) => {
 	requireRole(locals, 'admin');

@@ -1,7 +1,7 @@
 import { and, count, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { db } from './db';
 import { bundles, orderItemComponents, orderItems, orders, products, users } from './db/schema';
-import { PAID_STATUSES } from '$lib/constants';
+import { PAID_STATUSES } from '#lib/constants';
 
 export const STATUS_FILTERS = ['semua', ...PAID_STATUSES] as const;
 export type StatusFilter = (typeof STATUS_FILTERS)[number];

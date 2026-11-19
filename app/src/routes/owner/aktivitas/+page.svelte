@@ -6,12 +6,12 @@
 	import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
 	import Truck from '@lucide/svelte/icons/truck';
 	import { page as pageState } from '$app/state';
-	import Alert from '$lib/components/Alert.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import Pagination from '$lib/components/Pagination.svelte';
-	import { PAYMENT_STATUS_BADGE, PAYMENT_STATUS_LABEL } from '$lib/constants';
-	import { formatDate, formatRupiah } from '$lib/utils/format';
-	import { waktuRelatif } from '$lib/utils/relative-time';
+	import Alert from '#lib/components/Alert.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Pagination from '#lib/components/Pagination.svelte';
+	import { PAYMENT_STATUS_BADGE, PAYMENT_STATUS_LABEL } from '#lib/constants';
+	import { formatDate, formatRupiah } from '#lib/utils/format';
+	import { waktuRelatif } from '#lib/utils/relative-time';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();

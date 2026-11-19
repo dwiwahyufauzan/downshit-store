@@ -1,9 +1,9 @@
 import { and, count, desc, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
-import { db } from '$lib/server/db';
-import { orders, productSizes, products, users } from '$lib/server/db/schema';
-import { requireRole } from '$lib/server/guards';
-import { getSettings } from '$lib/server/settings';
-import { parseRange } from '$lib/server/time';
+import { db } from '#lib/server/db';
+import { orders, productSizes, products, users } from '#lib/server/db/schema';
+import { requireRole } from '#lib/server/guards';
+import { getSettings } from '#lib/server/settings';
+import { parseRange } from '#lib/server/time';
 import {
 	bundleVsSingle,
 	dailyRevenue,
@@ -11,7 +11,7 @@ import {
 	itemsSold,
 	salesSummary,
 	topItems
-} from '$lib/server/reports';
+} from '#lib/server/reports';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {

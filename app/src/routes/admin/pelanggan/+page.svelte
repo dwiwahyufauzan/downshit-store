@@ -1,10 +1,10 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import Pagination from '$lib/components/Pagination.svelte';
-	import TempPasswordCard from '$lib/components/TempPasswordCard.svelte';
-	import { formatDate, formatRupiah } from '$lib/utils/format';
+	import Alert from '#lib/components/Alert.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Pagination from '#lib/components/Pagination.svelte';
+	import TempPasswordCard from '#lib/components/TempPasswordCard.svelte';
+	import { formatDate, formatRupiah } from '#lib/utils/format';
 	import Search from '@lucide/svelte/icons/search';
 	import type { PageProps } from './$types';
 

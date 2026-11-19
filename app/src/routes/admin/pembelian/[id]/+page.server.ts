@@ -1,10 +1,10 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
-import { db } from '$lib/server/db';
-import { products, purchaseItems, purchases, users } from '$lib/server/db/schema';
-import { requireRole } from '$lib/server/guards';
-import { idParam } from '$lib/server/sql';
-import { PurchaseRuleError, cancelPurchase, receivePurchase } from '$lib/server/purchase';
+import { db } from '#lib/server/db';
+import { products, purchaseItems, purchases, users } from '#lib/server/db/schema';
+import { requireRole } from '#lib/server/guards';
+import { idParam } from '#lib/server/sql';
+import { PurchaseRuleError, cancelPurchase, receivePurchase } from '#lib/server/purchase';
 
 export const load = async ({ params, locals }) => {
 	requireRole(locals, 'admin');

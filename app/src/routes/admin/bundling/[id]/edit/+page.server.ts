@@ -1,14 +1,14 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { and, eq, inArray, isNull, or } from 'drizzle-orm';
-import { db, transact } from '$lib/server/db';
-import { bundleItems, bundles, products } from '$lib/server/db/schema';
-import { requireRole } from '$lib/server/guards';
-import { bundleUpdateSchema } from '$lib/schemas/bundle';
-import { deleteImage, saveImage } from '$lib/server/upload';
-import { deleteImageIfUnused } from '$lib/server/image-refs';
-import { idParam } from '$lib/server/sql';
-import { logActivity } from '$lib/server/activity';
-import { BundleRuleError, checkBundleComponents } from '$lib/server/bundle-validate';
+import { db, transact } from '#lib/server/db';
+import { bundleItems, bundles, products } from '#lib/server/db/schema';
+import { requireRole } from '#lib/server/guards';
+import { bundleUpdateSchema } from '#lib/schemas/bundle';
+import { deleteImage, saveImage } from '#lib/server/upload';
+import { deleteImageIfUnused } from '#lib/server/image-refs';
+import { idParam } from '#lib/server/sql';
+import { logActivity } from '#lib/server/activity';
+import { BundleRuleError, checkBundleComponents } from '#lib/server/bundle-validate';
 
 export type BundleEditFormErrors = {
 	name?: string[];

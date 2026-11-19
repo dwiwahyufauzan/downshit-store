@@ -1,10 +1,10 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
-	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import TempPasswordCard from '$lib/components/TempPasswordCard.svelte';
-	import StatusBadge from '$lib/components/StatusBadge.svelte';
-	import { formatRupiah, formatDate } from '$lib/utils/format';
+	import Alert from '#lib/components/Alert.svelte';
+	import Breadcrumb from '#lib/components/Breadcrumb.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import TempPasswordCard from '#lib/components/TempPasswordCard.svelte';
+	import StatusBadge from '#lib/components/StatusBadge.svelte';
+	import { formatRupiah, formatDate } from '#lib/utils/format';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import BundleForm from '$lib/components/BundleForm.svelte';
-	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import BundleForm from '#lib/components/BundleForm.svelte';
+	import Breadcrumb from '#lib/components/Breadcrumb.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();

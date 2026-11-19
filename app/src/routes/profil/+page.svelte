@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import Alert from '$lib/components/Alert.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { tanggal } from '$lib/utils/format';
+	import Alert from '#lib/components/Alert.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import { tanggal } from '#lib/utils/format';
 
 	let { data, form } = $props();
 	let loadingProfile = $state(false);

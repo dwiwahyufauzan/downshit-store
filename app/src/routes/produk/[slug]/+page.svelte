@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { thumbOf } from '$lib/utils/image';
-	import Alert from '$lib/components/Alert.svelte';
-	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
-	import SizePicker from '$lib/components/SizePicker.svelte';
-	import ProductShelf from '$lib/components/ProductShelf.svelte';
-	import Stars from '$lib/components/Stars.svelte';
-	import { formatRupiah } from '$lib/utils/format';
+	import { thumbOf } from '#lib/utils/image';
+	import Alert from '#lib/components/Alert.svelte';
+	import Breadcrumb from '#lib/components/Breadcrumb.svelte';
+	import SizePicker from '#lib/components/SizePicker.svelte';
+	import ProductShelf from '#lib/components/ProductShelf.svelte';
+	import Stars from '#lib/components/Stars.svelte';
+	import { formatRupiah } from '#lib/utils/format';
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';

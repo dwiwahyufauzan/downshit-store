@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { db, type Tx } from './db';
 import { NOW_ISO, productSizes, products } from './db/schema';
-import { compareSizes } from '$lib/utils/sizes';
+import { compareSizes } from '#lib/utils/sizes';
 
 type Exec = typeof db | Tx;
 

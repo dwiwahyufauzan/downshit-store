@@ -1,11 +1,11 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
-import { db } from '$lib/server/db';
-import { users } from '$lib/server/db/schema';
-import { createSession, hashPassword, homeFor } from '$lib/server/auth';
-import { registerSchema } from '$lib/schemas/auth';
-import { logActivity } from '$lib/server/activity';
-import { clientIp, rateLimit } from '$lib/server/rate-limit';
+import { db } from '#lib/server/db';
+import { users } from '#lib/server/db/schema';
+import { createSession, hashPassword, homeFor } from '#lib/server/auth';
+import { registerSchema } from '#lib/schemas/auth';
+import { logActivity } from '#lib/server/activity';
+import { clientIp, rateLimit } from '#lib/server/rate-limit';
 import type { Actions, PageServerLoad } from './$types';
 
 type RegisterFieldErrors = {

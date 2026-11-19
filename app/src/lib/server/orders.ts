@@ -22,7 +22,7 @@ import {
 } from './stock';
 import { getSettings } from './settings';
 import { checkSize } from './cart';
-import { decodeSelection } from '$lib/utils/sizes';
+import { decodeSelection } from '#lib/utils/sizes';
 import { logActivity } from './activity';
 import { generateOrderCode } from './codes';
 import { canCancel, type Status } from './order-status';

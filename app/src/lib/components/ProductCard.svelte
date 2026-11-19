@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { thumbOf } from '$lib/utils/image';
-	import { formatRupiah } from '$lib/utils/format';
+	import { thumbOf } from '#lib/utils/image';
+	import { formatRupiah } from '#lib/utils/format';
 	import Star from '@lucide/svelte/icons/star';
 
 	let {

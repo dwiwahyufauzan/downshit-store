@@ -1,13 +1,13 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import { db, transact, type Tx } from './db';
 import { bundleItems, bundles, cartItems, carts, products } from './db/schema';
-import { effectiveBundleStock } from '$lib/utils/bundle';
+import { effectiveBundleStock } from '#lib/utils/bundle';
 import {
 	decodeSelection,
 	encodeSelection,
 	normalizeSize,
 	type SizeSelection
-} from '$lib/utils/sizes';
+} from '#lib/utils/sizes';
 import { getSizes, sizeStock } from './sizes';
 
 type Exec = typeof db | Tx;

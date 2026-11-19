@@ -1,5 +1,5 @@
 <script lang="ts">
-	import StaffSidebar from '$lib/components/StaffSidebar.svelte';
+	import StaffSidebar from '#lib/components/StaffSidebar.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();

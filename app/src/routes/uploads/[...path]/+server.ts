@@ -3,8 +3,8 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { UPLOAD_DIR } from '$app/env/private';
 import { eq } from 'drizzle-orm';
-import { db } from '$lib/server/db';
-import { payments, orders } from '$lib/server/db/schema';
+import { db } from '#lib/server/db';
+import { payments, orders } from '#lib/server/db/schema';
 import type { RequestHandler } from './$types';
 
 const ROOT = path.resolve(UPLOAD_DIR ?? './uploads');

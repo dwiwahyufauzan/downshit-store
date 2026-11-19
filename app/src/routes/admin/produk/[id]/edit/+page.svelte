@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import Alert from '$lib/components/Alert.svelte';
-	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import SizeEditor from '$lib/components/SizeEditor.svelte';
+	import Alert from '#lib/components/Alert.svelte';
+	import Breadcrumb from '#lib/components/Breadcrumb.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import SizeEditor from '#lib/components/SizeEditor.svelte';
 	import ImageIcon from '@lucide/svelte/icons/image';
 	import Plus from '@lucide/svelte/icons/plus';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';

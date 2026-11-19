@@ -1,17 +1,17 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { and, asc, eq, inArray } from 'drizzle-orm';
-import { db, transact } from '$lib/server/db';
-import { categories, productImages, products } from '$lib/server/db/schema';
-import { requireRole } from '$lib/server/guards';
-import { parseRemoveField, parseSizeField, productUpdateSchema } from '$lib/schemas/product';
-import { SizeRuleError, applySizeEdit } from '$lib/server/product-sizes';
-import { getSizes } from '$lib/server/sizes';
-import { getSettings } from '$lib/server/settings';
-import { deleteImage, saveImage } from '$lib/server/upload';
-import { deleteImageIfUnused } from '$lib/server/image-refs';
-import { idParam } from '$lib/server/sql';
-import { productUsageIn } from '$lib/server/product-usage';
-import { logActivity } from '$lib/server/activity';
+import { db, transact } from '#lib/server/db';
+import { categories, productImages, products } from '#lib/server/db/schema';
+import { requireRole } from '#lib/server/guards';
+import { parseRemoveField, parseSizeField, productUpdateSchema } from '#lib/schemas/product';
+import { SizeRuleError, applySizeEdit } from '#lib/server/product-sizes';
+import { getSizes } from '#lib/server/sizes';
+import { getSettings } from '#lib/server/settings';
+import { deleteImage, saveImage } from '#lib/server/upload';
+import { deleteImageIfUnused } from '#lib/server/image-refs';
+import { idParam } from '#lib/server/sql';
+import { productUsageIn } from '#lib/server/product-usage';
+import { logActivity } from '#lib/server/activity';
 
 export type ProductEditFormErrors = {
 	name?: string[];

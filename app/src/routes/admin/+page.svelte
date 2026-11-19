@@ -1,8 +1,8 @@
 <script lang="ts">
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import StatusBadge from '$lib/components/StatusBadge.svelte';
-	import StockBadge from '$lib/components/StockBadge.svelte';
-	import { formatRupiah, formatDate } from '$lib/utils/format';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import StatusBadge from '#lib/components/StatusBadge.svelte';
+	import StockBadge from '#lib/components/StockBadge.svelte';
+	import { formatRupiah, formatDate } from '#lib/utils/format';
 	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
 	import type { PageProps } from './$types';
 

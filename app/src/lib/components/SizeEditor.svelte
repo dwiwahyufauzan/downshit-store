@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { SIZE_PRESETS, compareSizes, isValidSize, normalizeSize } from '$lib/utils/sizes';
+	import { SIZE_PRESETS, compareSizes, isValidSize, normalizeSize } from '#lib/utils/sizes';
 	import Plus from '@lucide/svelte/icons/plus';
 	import X from '@lucide/svelte/icons/x';
 
