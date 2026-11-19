@@ -7,6 +7,7 @@
 	import Stars from '#lib/components/Stars.svelte';
 	import { PAYMENT_STATUS_BADGE, PAYMENT_STATUS_LABEL } from '#lib/constants';
 	import { formatDate, formatRupiah } from '#lib/utils/format';
+	import { trackingPageFor } from '#lib/utils/courier';
 	import MessageCircle from '@lucide/svelte/icons/message-circle';
 	import Ban from '@lucide/svelte/icons/ban';
 	import Check from '@lucide/svelte/icons/check';
@@ -19,6 +20,7 @@
 
 	let o = $derived(data.order);
 	let copied = $state('');
+	const trackUrl = $derived(trackingPageFor(data.shipment?.courier));
 
 	function copyToClipboard(text: string, key: string) {
 		if (navigator.clipboard) {
@@ -480,6 +482,21 @@
 									</button>
 								{/if}
 							</dd>
+							{#if trackUrl}
+								<dd class="mt-3">
+									<a
+										href={trackUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										class="btn btn-sm btn-block"
+									>
+										<ExternalLink size={14} /> Lacak di situs {data.shipment.courier}
+									</a>
+									<p class="hint">
+										Salin nomor resi di atas, lalu tempel di halaman pelacakan kurir.
+									</p>
+								</dd>
+							{/if}
 						</div>
 						{#if data.shipment.shippedAt}
 							<div>
