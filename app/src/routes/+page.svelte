@@ -145,6 +145,17 @@
 	const featuredPoster = $derived(featured?.imageUrl ? thumbOf(featured.imageUrl) : '');
 	let featuredVideoFailed = $state(false);
 
+	// Pengguna yang meminta gerak dikurangi (prefers-reduced-motion) melihat foto poster, bukan video yang
+	// berputar otomatis. Mengikuti perubahan pengaturan OS saat halaman terbuka.
+	let reduceMotion = $state(false);
+	$effect(() => {
+		const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+		reduceMotion = mq.matches;
+		const onChange = (e: MediaQueryListEvent) => (reduceMotion = e.matches);
+		mq.addEventListener('change', onChange);
+		return () => mq.removeEventListener('change', onChange);
+	});
+
 	/**
 	 * Svelte Action untuk memutar video HLS (.m3u8) maupun format native (.mp4/.webm)
 	 * secara responsif, looping, muted, dan autoplay di semua browser modern & mobile.
@@ -428,7 +439,7 @@
 				<div
 					class="product-media relative !aspect-[4/3] overflow-hidden bg-paper lg:!aspect-auto lg:min-h-[20rem] lg:flex-1 [&_img]:object-cover lg:[&_img]:absolute lg:[&_img]:inset-0 [&_video]:object-cover lg:[&_video]:absolute lg:[&_video]:inset-0"
 				>
-					{#if isVideo(featuredMedia) && !featuredVideoFailed}
+					{#if isVideo(featuredMedia) && !featuredVideoFailed && !reduceMotion}
 						<!-- Video latar belakang produk sorotan (mendukung HLS .m3u8 / mp4) -->
 						<video
 							use:setupHls={featuredMedia}
