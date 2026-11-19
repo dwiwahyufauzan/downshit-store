@@ -196,6 +196,26 @@ export const cartItems = sqliteTable(
 	]
 );
 
+/* ---------- 3b. Favorit (wishlist) ---------- */
+/** Produk yang disimpan konsumen; satu baris per (pengguna, produk). Ikut terhapus bersama pengguna/produk. */
+export const wishlists = sqliteTable(
+	'wishlists',
+	{
+		id: id(),
+		userId: integer('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		productId: integer('product_id')
+			.notNull()
+			.references(() => products.id, { onDelete: 'cascade' }),
+		createdAt: createdAt()
+	},
+	(t) => [
+		uniqueIndex('uq_wishlist_user_product').on(t.userId, t.productId),
+		index('idx_wishlist_user').on(t.userId, t.createdAt)
+	]
+);
+
 /* ---------- 4. Pesanan, Item & Snapshot Komponen ---------- */
 export const orders = sqliteTable(
 	'orders',

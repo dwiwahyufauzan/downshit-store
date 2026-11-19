@@ -10,6 +10,7 @@
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import Monitor from '@lucide/svelte/icons/monitor';
 	import Settings from '@lucide/svelte/icons/settings';
+	import Heart from '@lucide/svelte/icons/heart';
 	import type { SessionUser } from '../../app';
 
 	let {
@@ -365,6 +366,15 @@
 										<p class="truncate text-xs text-smoke">{user.email}</p>
 									</div>
 									<nav class="py-1" aria-label="Akun">
+										{#if user.role === 'konsumen'}
+											<a
+												href="/favorit"
+												class={accountItem}
+												aria-current={pathname === '/favorit' ? 'page' : undefined}
+											>
+												<Heart size={16} /> Favorit
+											</a>
+										{/if}
 										<a
 											href="/profil"
 											class={accountItem}
@@ -470,6 +480,12 @@
 								class="block py-4 text-sm font-semibold tracking-[0.16em] uppercase"
 							>
 								Pesanan saya
+							</a>
+							<a
+								href="/favorit"
+								class="block py-4 text-sm font-semibold tracking-[0.16em] uppercase"
+							>
+								Favorit
 							</a>
 						{/if}
 						{#if !user}

@@ -12,6 +12,7 @@
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import Heart from '@lucide/svelte/icons/heart';
 	import Minus from '@lucide/svelte/icons/minus';
 	import Plus from '@lucide/svelte/icons/plus';
 	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
@@ -23,6 +24,7 @@
 	let qty = $state(1);
 	let size = $state('');
 	let adding = $state(false);
+	let savingFavorite = $state(false);
 
 	const seoDescription = $derived(
 		p.description?.slice(0, 160) ||
@@ -289,6 +291,23 @@
 								: hasSizes && !size
 									? 'Pilih ukuran dulu'
 									: 'Tambah ke keranjang'}
+						</button>
+					</form>
+
+					<form
+						method="POST"
+						action="?/favorit"
+						class="mt-3"
+						use:enhance={enhanceInPlace((b) => (savingFavorite = b))}
+					>
+						<button
+							type="submit"
+							class="btn btn-block"
+							disabled={savingFavorite}
+							aria-pressed={data.isWishlisted}
+						>
+							<Heart size={16} class={data.isWishlisted ? 'fill-current' : ''} />
+							{data.isWishlisted ? 'Tersimpan di favorit' : 'Simpan ke favorit'}
 						</button>
 					</form>
 				{:else}

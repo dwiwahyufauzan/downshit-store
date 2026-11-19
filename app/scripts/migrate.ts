@@ -95,7 +95,7 @@ const run = sqlite.transaction(() => {
 			order_id integer NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
 			rating integer NOT NULL,
 			comment text,
-			is_visible integer NOT NULL DEFAULT 1,
+			is_visible integer NOT NULL DEFAULT true,
 			created_at text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
 			updated_at text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 		);
@@ -129,6 +129,19 @@ const run = sqlite.transaction(() => {
 		);
 		CREATE INDEX IF NOT EXISTS idx_product_images_product ON product_images (product_id);`
 	);
+
+	// Tabel favorit (wishlist)
+	sqlite.exec(
+		`CREATE TABLE IF NOT EXISTS wishlists (
+			id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+			user_id integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			product_id integer NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+			created_at text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+		);
+		CREATE UNIQUE INDEX IF NOT EXISTS uq_wishlist_user_product ON wishlists (user_id, product_id);
+		CREATE INDEX IF NOT EXISTS idx_wishlist_user ON wishlists (user_id, created_at);`
+	);
+
 	for (const s of STEPS) {
 		if (hasColumn(s.table, s.column)) continue;
 		sqlite.exec(s.ddl);

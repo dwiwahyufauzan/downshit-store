@@ -25,6 +25,7 @@ export const ROBOTS_DISALLOW = [
 	'/keranjang',
 	'/checkout',
 	'/pesanan',
+	'/favorit',
 	'/profil',
 	'/uploads/proofs/'
 ] as const;

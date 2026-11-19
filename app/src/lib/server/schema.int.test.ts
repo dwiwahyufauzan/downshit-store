@@ -2,10 +2,11 @@
  * SRS-NF-003 (basis data terstruktur) + jalur instal produksi:
  *  - skema hasil `drizzle-kit export --sql` (dipakai deploy.sh pada instal pertama) HARUS identik dengan
  *    skema hasil `drizzle-kit push` (dipakai tes & dev): tabel, kolom, tipe, default, indeks, kunci asing.
- *  - 22 tabel aplikasi, FK konsisten, tanpa data yatim pada data sintetis.
+ *  - 23 tabel aplikasi, FK konsisten, tanpa data yatim pada data sintetis.
  * Tidak memakai modul db aplikasi; hanya berkas template kosong dari tests/global-setup.ts.
  */
 import { execSync } from 'node:child_process';
+import { copyFileSync, rmSync } from 'node:fs';
 import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 
@@ -33,7 +34,8 @@ const APP_TABLES = [
 	'settings',
 	'shipments',
 	'stock_movements',
-	'users'
+	'users',
+	'wishlists'
 ];
 
 function describeDb(db: Database.Database) {
@@ -77,7 +79,7 @@ describe('skema database (NF-03)', () => {
 		expect(template, 'tests/global-setup.ts harus menyetel TEST_DB_TEMPLATE').toBeTruthy();
 	});
 
-	it('berisi tepat 22 tabel aplikasi', () => {
+	it('berisi tepat 23 tabel aplikasi', () => {
 		const db = new Database(template!, { readonly: true });
 		expect(describeDb(db).tables).toEqual(APP_TABLES);
 		db.close();
@@ -94,6 +96,32 @@ describe('skema database (NF-03)', () => {
 		expect(describeDb(fresh)).toEqual(describeDb(pushed));
 		fresh.close();
 		pushed.close();
+	});
+
+	it('`npm run db:migrate-sync` membuat ulang tabel tambahan dengan struktur IDENTIK skema push', () => {
+		// DB produksi lama tidak punya tabel-tabel ini; deploy.sh menyusulnya lewat scripts/migrate.ts
+		const copy = `${template}.migrate-check.db`;
+		try {
+			copyFileSync(template!, copy);
+			const old = new Database(copy);
+			for (const t of ['wishlists', 'reviews', 'product_sizes', 'product_images']) {
+				old.exec(`drop table ${t}`);
+			}
+			old.close();
+
+			execSync('npx tsx scripts/migrate.ts', {
+				env: { ...process.env, DATABASE_URL: copy },
+				stdio: 'pipe'
+			});
+
+			const migrated = new Database(copy, { readonly: true });
+			const pushed = new Database(template!, { readonly: true });
+			expect(describeDb(migrated)).toEqual(describeDb(pushed));
+			migrated.close();
+			pushed.close();
+		} finally {
+			for (const ext of ['', '-wal', '-shm']) rmSync(copy + ext, { force: true });
+		}
 	});
 
 	it('semua kunci asing merujuk tabel & kolom yang ada', () => {

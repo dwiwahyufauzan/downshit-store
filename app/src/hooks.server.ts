@@ -9,7 +9,8 @@ const NEEDS_LOGIN = [
 	/^\/keranjang(\/|$)/,
 	/^\/checkout(\/|$)/,
 	/^\/pesanan(\/|$)/,
-	/^\/profil(\/|$)/
+	/^\/profil(\/|$)/,
+	/^\/favorit(\/|$)/
 ];
 const CATALOG = [/^\/produk(\/|$)/, /^\/bundling(\/|$)/];
 // Path yang tidak butuh sesi → hemat satu query DB per gambar/permintaan (bukti bayar tetap butuh sesi)

@@ -297,3 +297,14 @@ CREATE TABLE `users` (
 
 CREATE UNIQUE INDEX `uq_users_email` ON `users` (`email`);
 CREATE INDEX `idx_users_role` ON `users` (`role`);
+CREATE TABLE `wishlists` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`user_id` integer NOT NULL,
+	`product_id` integer NOT NULL,
+	`created_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON UPDATE no action ON DELETE cascade
+);
+
+CREATE UNIQUE INDEX `uq_wishlist_user_product` ON `wishlists` (`user_id`,`product_id`);
+CREATE INDEX `idx_wishlist_user` ON `wishlists` (`user_id`,`created_at`);

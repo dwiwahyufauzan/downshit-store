@@ -13,6 +13,8 @@ import {
 	getTopRated
 } from '#lib/server/recommendations';
 import { getReviewSummary, listReviews } from '#lib/server/reviews';
+import { isWishlisted, toggleWishlist } from '#lib/server/wishlist';
+import { rateLimit } from '#lib/server/rate-limit';
 import type { Actions, PageServerLoad } from './$types';
 
 const addSchema = z.object({
@@ -109,11 +111,41 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		lowStock,
 		relatedBundles,
 		isKonsumen: locals.user?.role === 'konsumen',
+		isWishlisted: locals.user?.role === 'konsumen' ? isWishlisted(locals.user.id, prod.id) : false,
 		user: locals.user
 	};
 };
 
 export const actions: Actions = {
+	/** Simpan / hapus produk dari favorit (toggle). Produk diambil dari slug halaman, bukan dari field form. */
+	favorit: async ({ locals, url, params }) => {
+		if (!locals.user) {
+			throw redirect(303, `/login?next=${encodeURIComponent(url.pathname)}`);
+		}
+		if (locals.user.role !== 'konsumen') {
+			return fail(403, { message: 'Hanya akun Konsumen yang dapat menyimpan favorit.' });
+		}
+		if (rateLimit(`wish|${locals.user.id}`, 30, 60_000)) {
+			return fail(429, { message: 'Terlalu cepat. Coba lagi sebentar.' });
+		}
+
+		const [prod] = await db
+			.select({ id: products.id })
+			.from(products)
+			.where(eq(products.slug, params.slug))
+			.limit(1);
+		if (!prod) throw error(404, 'Produk tidak ditemukan');
+
+		const r = toggleWishlist(locals.user.id, prod.id);
+		if (!r.ok) return fail(r.reason === 'not_found' ? 404 : 400, { message: r.message });
+
+		return {
+			success: true,
+			message: r.saved ? 'Disimpan ke favorit.' : 'Dihapus dari favorit.',
+			...(r.saved && { toastAction: { href: '/favorit', label: 'Lihat favorit' } })
+		};
+	},
+
 	tambah: async ({ request, locals, url, params }) => {
 		if (!locals.user) {
 			throw redirect(303, `/login?next=${encodeURIComponent(url.pathname)}`);
