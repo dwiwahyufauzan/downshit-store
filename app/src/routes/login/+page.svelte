@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { dev } from '$app/env';
 	import { waLink } from '#lib/utils/whatsapp';
+	import { forgotPasswordMessage } from '#lib/utils/wa-messages';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 
 	/* ------------------------------------------------------------------
@@ -14,10 +15,12 @@
 	let loading = $state(false);
 
 	// Lupa password: tanpa email, konsumen meminta admin mengatur ulang lewat WhatsApp (plan/04)
+	// email yang sudah diketik ikut dicantumkan agar admin tahu akun mana yang direset
+	let typedEmail = $state('');
 	const forgotUrl = $derived(
 		waLink(
 			data.store?.whatsapp,
-			`Halo ${data.store?.name ?? 'Downshit Store'}, saya lupa password akun saya. Mohon bantuan mengatur ulang password.`
+			forgotPasswordMessage(data.store?.name ?? 'Downshit Store', typedEmail || form?.email)
 		)
 	);
 
@@ -32,6 +35,7 @@
 		const passInput = document.getElementById('password') as HTMLInputElement;
 		if (emailInput && passInput) {
 			emailInput.value = email;
+			typedEmail = email;
 			passInput.value = 'Ganti-Password-123!';
 		}
 	}
@@ -117,6 +121,7 @@
 						required
 						autocomplete="email"
 						value={form?.email ?? ''}
+						oninput={(e) => (typedEmail = e.currentTarget.value)}
 						placeholder="nama@email.com"
 						aria-invalid={form?.errors?.email ? 'true' : undefined}
 						aria-describedby={form?.errors?.email ? 'err-email' : undefined}

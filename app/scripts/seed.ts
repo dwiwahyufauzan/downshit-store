@@ -39,7 +39,7 @@ async function seed() {
 		max_unpaid_orders: '3',
 		low_stock_threshold: '5',
 		store_name: 'Downshit Store',
-		store_whatsapp: '6281234567890',
+		store_whatsapp: '6283867358863',
 		shipping_flat_cost: '15000',
 		bank_name: 'BCA',
 		bank_account_number: '1234567890',

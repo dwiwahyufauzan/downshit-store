@@ -47,6 +47,7 @@
 		<div class="mt-6">
 			<TempPasswordCard
 				customerName={form.customerName ?? ''}
+				customerEmail={form.customerEmail ?? ''}
 				tempPassword={form.tempPassword}
 				customerPhone={form.customerPhone}
 			/>

@@ -87,6 +87,7 @@ export const actions = {
 			resetSuccess: true,
 			tempPassword: r.tempPassword,
 			customerName: r.name,
+			customerEmail: r.email,
 			customerPhone: r.phone
 		};
 	}

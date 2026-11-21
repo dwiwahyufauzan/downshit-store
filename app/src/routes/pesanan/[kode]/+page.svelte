@@ -8,6 +8,7 @@
 	import { PAYMENT_STATUS_BADGE, PAYMENT_STATUS_LABEL } from '#lib/constants';
 	import { formatDate, formatRupiah } from '#lib/utils/format';
 	import { trackingPageFor } from '#lib/utils/courier';
+	import { cancelReasonText } from '#lib/utils/wa-messages';
 	import MessageCircle from '@lucide/svelte/icons/message-circle';
 	import Ban from '@lucide/svelte/icons/ban';
 	import Check from '@lucide/svelte/icons/check';
@@ -21,6 +22,7 @@
 	let o = $derived(data.order);
 	let copied = $state('');
 	const trackUrl = $derived(trackingPageFor(data.shipment?.courier));
+	const cancelReason = $derived(cancelReasonText(o.cancelReason));
 
 	function copyToClipboard(text: string, key: string) {
 		if (navigator.clipboard) {
@@ -125,15 +127,39 @@
 		<section class="mt-6 border border-danger bg-danger-bg p-5 sm:p-6" role="status">
 			<p class="text-xs font-bold tracking-[0.16em] text-danger uppercase">Pesanan dibatalkan</p>
 			<p class="mt-2 text-sm text-ink">
-				Pesanan ini sudah tidak aktif dan seluruh stok dikembalikan ke toko.
-				{#if o.cancelReason}
-					Alasan: {o.cancelReason}.
+				{#if data.cancelledBy === 'sistem'}
+					Pesanan ini dibatalkan otomatis karena melewati batas waktu pembayaran.
+				{:else if data.cancelledBy === 'konsumen'}
+					Anda membatalkan pesanan ini.
+				{:else}
+					Pesanan ini dibatalkan oleh toko.
+				{/if}
+				{#if cancelReason && data.cancelledBy !== 'sistem'}
+					Alasan: {cancelReason}.
+				{/if}
+			</p>
+			<p class="mt-2 text-sm text-ink">
+				{#if data.refund === 'dikembalikan'}
+					Pembayaran {formatRupiah(o.total)} yang sudah kami terima akan dikembalikan. Hubungi toko via
+					WhatsApp untuk menyampaikan nama bank, nomor rekening, dan nama pemilik rekening tujuan.
+				{:else if data.refund === 'bukti_belum_diverifikasi'}
+					Bukti transfer Anda belum sempat diverifikasi. Bila Anda sudah mentransfer, hubungi toko
+					via WhatsApp beserta bukti transfer agar dana dapat dikembalikan.
+				{:else}
+					Tidak ada pembayaran yang perlu dikembalikan.
 				{/if}
 			</p>
 			{#if o.cancelledAt}
 				<p class="mt-1 text-xs text-smoke">Dibatalkan {formatDate(o.cancelledAt)}</p>
 			{/if}
-			<a href="/produk" class="btn btn-sm btn-primary mt-4">Belanja lagi</a>
+			<div class="mt-4 flex flex-wrap gap-2">
+				<a href="/produk" class="btn btn-sm btn-primary">Belanja lagi</a>
+				{#if data.refund !== 'tidak_ada' && data.waUrl}
+					<a href={data.waUrl} target="_blank" rel="noopener noreferrer" class="btn btn-sm">
+						<MessageCircle size={14} /> Hubungi toko soal dana
+					</a>
+				{/if}
+			</div>
 		</section>
 	{:else}
 		<ol class="mt-6 grid gap-px border border-ink bg-ink sm:grid-cols-5" aria-label="Alur status">
@@ -573,9 +599,11 @@
 				{/if}
 			</section>
 
-			<a href={data.waUrl} target="_blank" rel="noopener noreferrer" class="btn btn-block">
-				<MessageCircle size={14} /> Hubungi toko via WhatsApp
-			</a>
+			{#if data.waUrl}
+				<a href={data.waUrl} target="_blank" rel="noopener noreferrer" class="btn btn-block">
+					<MessageCircle size={14} /> Hubungi toko via WhatsApp
+				</a>
+			{/if}
 		</aside>
 	</div>
 </div>

@@ -37,6 +37,14 @@ export const PAYMENT_STATUS_LABEL: Record<string, string> = {
 	dikembalikan: 'Dikembalikan'
 };
 
+/** Catatan pembayaran bila pesanan dibatalkan saat bukti transfer belum diverifikasi (dipakai orders.ts dan pesan WhatsApp) */
+export const PAYMENT_NOTE_ORDER_CANCELLED = 'Pesanan dibatalkan';
+
+/** Alasan bawaan bila pembeli membatalkan tanpa menulis alasan */
+export const CANCEL_REASON_BY_CUSTOMER = 'Dibatalkan oleh pembeli';
+/** Alasan yang dicatat job otomatis untuk pesanan yang tidak dibayar sampai batas waktu */
+export const CANCEL_REASON_EXPIRED = 'Melewati batas waktu pembayaran';
+
 export const PAYMENT_STATUS_BADGE: Record<string, string> = {
 	belum_bayar: 'badge-muted',
 	menunggu: 'badge-warn',

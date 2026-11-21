@@ -40,7 +40,7 @@ export async function getSettings(): Promise<StoreSettings> {
 
 	return {
 		storeName: map.store_name ?? 'Downshit Store',
-		whatsapp: map.store_whatsapp ?? '6281234567890',
+		whatsapp: map.store_whatsapp ?? '6283867358863',
 		shippingCost: num(map.shipping_flat_cost, 15000),
 		bankName: map.bank_name ?? 'BCA',
 		bankNumber: map.bank_account_number ?? '1234567890',

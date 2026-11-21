@@ -43,9 +43,17 @@
 					<Printer size={12} /> Cetak label
 				</a>
 				{#if data.waUrl}
-					<a href={data.waUrl} target="_blank" rel="noreferrer" class="btn btn-tool">
-						<MessageCircle size={12} /> WhatsApp pelanggan
+					<a
+						href={data.waUrl}
+						target="_blank"
+						rel="noreferrer"
+						class="btn btn-tool"
+						title="Membuka WhatsApp dengan pesan siap kirim: {data.waTopic}"
+					>
+						<MessageCircle size={12} /> WhatsApp: {data.waTopic}
 					</a>
+				{:else}
+					<span class="text-xs text-smoke">Nomor WhatsApp pelanggan tidak valid</span>
 				{/if}
 			{/snippet}
 		</PageHeader>

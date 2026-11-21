@@ -1,6 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { and, desc, eq, inArray } from 'drizzle-orm';
-import { MAX_UPLOAD_MB } from '$app/env/private';
+import { MAX_UPLOAD_MB, ORIGIN } from '$app/env/private';
+import { CANCEL_REASON_BY_CUSTOMER } from '#lib/constants';
 import { requireRole } from '#lib/server/guards';
 import { db } from '#lib/server/db';
 import {
@@ -12,6 +13,9 @@ import {
 	shipments
 } from '#lib/server/db/schema';
 import { getSettings } from '#lib/server/settings';
+import { getCancelledBy, toWaOrder, toWaStore } from '#lib/server/wa-order';
+import { waLink } from '#lib/utils/whatsapp';
+import { messageToStore } from '#lib/utils/wa-messages';
 import { canCancel, type Status } from '#lib/server/order-status';
 import { cancelOrder } from '#lib/server/orders';
 import { completeOrder, orderFail, submitPaymentProof } from '#lib/server/order-flow';
@@ -38,7 +42,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		throw error(404, 'Pesanan tidak ditemukan');
 	}
 
-	const [items, paymentHistory, [shipment], settings] = await Promise.all([
+	const [items, paymentHistory, [shipmentRow], settings] = await Promise.all([
 		db.select().from(orderItems).where(eq(orderItems.orderId, order.id)),
 		db.select().from(payments).where(eq(payments.orderId, order.id)).orderBy(desc(payments.id)),
 		db.select().from(shipments).where(eq(shipments.orderId, order.id)).limit(1),
@@ -76,10 +80,26 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		components: componentsByItemId.get(item.id) ?? []
 	}));
 
+	const shipment = shipmentRow ?? null;
+
 	// Status pembayaran "efektif" = baris terbaru; belum ada upload → belum_bayar (BR-20)
 	const payment = paymentHistory[0] ?? null;
-	const waNumber = settings.whatsapp.replace(/\D/g, '');
-	const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(`Halo, pesanan ${order.code}`)}`;
+	const cancelledBy =
+		order.status === 'dibatalkan'
+			? await getCancelledBy(order.id, order.userId, order.cancelReason)
+			: null;
+	const waOrder = toWaOrder({
+		order,
+		items: enrichedItems,
+		payments: paymentHistory,
+		shipment,
+		cancelledBy
+	});
+	// pesan awal ke toko memuat kode, status, barang, total, dan keperluan sesuai status pesanan
+	const waUrl = waLink(
+		settings.whatsapp,
+		messageToStore(waOrder, toWaStore(settings, ORIGIN ?? url.origin), user.name)
+	);
 
 	return {
 		order,
@@ -89,9 +109,11 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		payment,
 		paymentStatus: payment?.status ?? 'belum_bayar',
 		paymentHistory,
-		shipment: shipment ?? null,
+		shipment,
 		settings,
 		waUrl,
+		cancelledBy,
+		refund: waOrder.refund,
 		maxUploadMb: Number(MAX_UPLOAD_MB ?? 2),
 		justCreated: url.searchParams.get('baru') === '1',
 		// dihitung di server karena order-status.ts tidak boleh diimpor komponen
@@ -169,7 +191,7 @@ export const actions: Actions = {
 		if (!order) throw error(404, 'Pesanan tidak ditemukan');
 
 		const fd = await request.formData();
-		const reason = String(fd.get('reason') ?? '').trim() || 'Dibatalkan oleh pembeli';
+		const reason = String(fd.get('reason') ?? '').trim() || CANCEL_REASON_BY_CUSTOMER;
 
 		try {
 			await cancelOrder(order.id, { id: user.id, role: 'konsumen' }, reason);

@@ -1,4 +1,5 @@
 import { error, fail } from '@sveltejs/kit';
+import { ORIGIN } from '$app/env/private';
 import { and, desc, eq } from 'drizzle-orm';
 import { db } from '#lib/server/db';
 import { activityLogs, orders, payments, shipments, users } from '#lib/server/db/schema';
@@ -15,8 +16,11 @@ import { cancelOrder } from '#lib/server/orders';
 import { allowedNext, canCancel, type Status } from '#lib/server/order-status';
 import { shipmentSchema } from '#lib/schemas/shipment';
 import { getSettings } from '#lib/server/settings';
+import { getCancelledBy, toWaOrder, toWaStore } from '#lib/server/wa-order';
+import { waLink } from '#lib/utils/whatsapp';
+import { messageToCustomer } from '#lib/utils/wa-messages';
 
-export const load = async ({ params, locals }) => {
+export const load = async ({ params, locals, url }) => {
 	requireRole(locals, 'admin');
 
 	const [o] = await db.select().from(orders).where(eq(orders.code, params.kode)).limit(1);
@@ -59,15 +63,20 @@ export const load = async ({ params, locals }) => {
 
 	const settings = await getSettings();
 
-	// WhatsApp ke penerima (selalu encodeURIComponent); nomor HP Indonesia → format 62…
-	const rawPhone = (customer?.phone || o.recipientPhone || '').replace(/\D/g, '');
-	const waNumber = rawPhone.startsWith('0') ? `62${rawPhone.slice(1)}` : rawPhone;
-	const nama = o.recipientName || customer?.name || 'Kak';
-	const waText =
-		o.status === 'dikirim' && shipment?.trackingNumber
-			? `Halo ${nama}, pesanan ${o.code} sudah kami kirim via ${shipment.courier}, resi ${shipment.trackingNumber}.`
-			: `Halo ${nama}, mengenai pesanan Anda di ${settings.storeName} (${o.code})...`;
-	const waUrl = waNumber ? `https://wa.me/${waNumber}?text=${encodeURIComponent(waText)}` : null;
+	// WhatsApp ke penerima: nomor & nama dari pesanan ini (nomor akun pelanggan sebagai cadangan);
+	// isi pesan menyesuaikan status pesanan (lihat utils/wa-messages)
+	const waMessage = messageToCustomer(
+		toWaOrder({
+			order: o,
+			items: itemsWithComps,
+			payments: paymentRows,
+			shipment: shipment ?? null,
+			cancelledBy:
+				o.status === 'dibatalkan' ? await getCancelledBy(o.id, o.userId, o.cancelReason) : null
+		}),
+		toWaStore(settings, ORIGIN ?? url.origin)
+	);
+	const waUrl = waLink(o.recipientPhone, waMessage.text) ?? waLink(customer?.phone, waMessage.text);
 
 	return {
 		order: o,
@@ -77,6 +86,7 @@ export const load = async ({ params, locals }) => {
 		latestPayment: paymentRows[0] ?? null,
 		paymentStatus: paymentRows[0]?.status ?? 'belum_bayar',
 		waUrl,
+		waTopic: waMessage.topic,
 		shipment,
 		logs,
 		settings,

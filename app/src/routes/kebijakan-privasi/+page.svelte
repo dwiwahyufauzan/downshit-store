@@ -1,9 +1,12 @@
 <script lang="ts">
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import { page } from '$app/state';
+	import { waLink } from '#lib/utils/whatsapp';
+	import { dataRequestMessage } from '#lib/utils/wa-messages';
 
-	const wa = $derived(
-		((page.data as { store?: { whatsapp?: string } }).store?.whatsapp ?? '').replace(/\D/g, '')
+	const store = $derived((page.data as { store?: { name?: string; whatsapp?: string } }).store);
+	const waUrl = $derived(
+		waLink(store?.whatsapp, dataRequestMessage(store?.name ?? 'Downshit Store'))
 	);
 
 	const sections = [
@@ -58,13 +61,8 @@
 
 		<p class="mt-8 text-sm text-smoke">
 			Pertanyaan atau permintaan koreksi data:
-			{#if wa}
-				<a
-					href="https://wa.me/{wa}"
-					rel="noopener"
-					target="_blank"
-					class="link font-semibold text-ink"
-				>
+			{#if waUrl}
+				<a href={waUrl} rel="noopener" target="_blank" class="link font-semibold text-ink">
 					hubungi WhatsApp toko
 				</a>.
 			{:else}

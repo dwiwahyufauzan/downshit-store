@@ -64,13 +64,13 @@
 						id="whatsapp"
 						name="whatsapp"
 						type="text"
-						placeholder="6281234567890"
+						placeholder="6283867358863"
 						inputmode="numeric"
 						maxlength="15"
 						value={s.whatsapp ?? ''}
 						required
 					/>
-					<p class="hint">Awali dengan 62 (contoh: 6281234567890)</p>
+					<p class="hint">Awali dengan 62 (contoh: 6283867358863)</p>
 					{#if form?.errors?.whatsapp}
 						<p class="field-error">{form.errors.whatsapp[0]}</p>
 					{/if}

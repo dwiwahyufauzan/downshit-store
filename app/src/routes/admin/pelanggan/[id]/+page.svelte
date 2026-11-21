@@ -57,6 +57,7 @@
 	{#if form?.resetSuccess && form.tempPassword}
 		<TempPasswordCard
 			customerName={form.customerName ?? ''}
+			customerEmail={form.customerEmail ?? ''}
 			tempPassword={form.tempPassword}
 			customerPhone={form.customerPhone}
 		/>

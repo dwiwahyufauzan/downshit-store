@@ -1,6 +1,8 @@
 <script lang="ts">
 	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
 	import { reveal } from '#lib/actions/reveal';
+	import { waDigits, waLink } from '#lib/utils/whatsapp';
+	import { storeInquiryMessage } from '#lib/utils/wa-messages';
 	import type { PageData } from '../../../routes/$types';
 
 	let { store }: { store: PageData['store'] } = $props();
@@ -22,17 +24,14 @@
 	const MAP_EMBED_URL =
 		'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3963.751962695073!2d107.68757647641142!3d-6.552966893440023!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e693d33b551db31%3A0xfc8dafef481952f2!2sDownshit%20Market!5e0!3m2!1sid!2sid!4v1794967974643!5m2!1sid!2sid';
 
-	/** Nomor WhatsApp toko dalam format 62xxx (untuk wa.me) dan tampilan +62 xxx-xxxx-xxxx. */
-	const waDigits = $derived.by(() => {
-		const d = (store?.whatsapp ?? '').replace(/\D/g, '') || '6281234567890';
-		return d.startsWith('0') ? '62' + d.slice(1) : d;
-	});
+	/** Nomor WhatsApp toko untuk tampilan +62 xxx-xxxx-xxxx dan tautan chat dengan pesan awal. */
+	const waNumber = $derived(waDigits(store?.whatsapp));
 	const waDisplay = $derived(
-		`+${waDigits.slice(0, 2)} ${waDigits.slice(2).replace(/(\d{3,4})(?=\d)/g, '$1-')}`
+		waNumber
+			? `+${waNumber.slice(0, 2)} ${waNumber.slice(2).replace(/(\d{3,4})(?=\d)/g, '$1-')}`
+			: ''
 	);
-	const waLink = $derived(
-		`https://wa.me/${waDigits}?text=${encodeURIComponent(`Halo ${store?.name ?? 'Downshit'}, saya ingin bertanya seputar produk dan ketersediaan stok.`)}`
-	);
+	const waUrl = $derived(waLink(store?.whatsapp, storeInquiryMessage(store?.name ?? 'Downshit')));
 </script>
 
 <!-- Lokasi & kontak -->
@@ -52,7 +51,7 @@
 			<!-- WhatsApp -->
 			<a
 				use:reveal
-				href={waLink}
+				href={waUrl ?? undefined}
 				target="_blank"
 				rel="noopener noreferrer"
 				class="contact-tile group"

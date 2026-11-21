@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { waLink } from '#lib/utils/whatsapp';
+	import { storeInquiryMessage } from '#lib/utils/wa-messages';
+
 	let {
 		store
 	}: {
@@ -10,9 +13,8 @@
 		};
 	} = $props();
 
-	const waNumber = $derived(store?.whatsapp ? store.whatsapp.replace(/\D/g, '') : '6281234567890');
 	const waUrl = $derived(
-		`https://wa.me/${waNumber.startsWith('0') ? '62' + waNumber.slice(1) : waNumber}?text=Halo%20Admin%20Downshit%2C%20saya%20mau%20tanya%20seputar%20produk`
+		waLink(store?.whatsapp, storeInquiryMessage(store?.name ?? 'Downshit Store'))
 	);
 </script>
 
@@ -39,14 +41,16 @@
 				<a href="/bundling" class="transition-colors hover:text-paper">Bundling</a>
 				<a href="/kebijakan-privasi" class="transition-colors hover:text-paper">Kebijakan Privasi</a
 				>
-				<a
-					href={waUrl}
-					target="_blank"
-					rel="noopener noreferrer"
-					class="transition-colors hover:text-paper"
-				>
-					WhatsApp
-				</a>
+				{#if waUrl}
+					<a
+						href={waUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="transition-colors hover:text-paper"
+					>
+						WhatsApp
+					</a>
+				{/if}
 			</nav>
 		</div>
 

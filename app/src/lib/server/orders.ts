@@ -23,6 +23,7 @@ import {
 import { getSettings } from './settings';
 import { checkSize } from './cart';
 import { decodeSelection } from '#lib/utils/sizes';
+import { CANCEL_REASON_EXPIRED, PAYMENT_NOTE_ORDER_CANCELLED } from '#lib/constants';
 import { logActivity } from './activity';
 import { generateOrderCode } from './codes';
 import { canCancel, type Status } from './order-status';
@@ -284,7 +285,7 @@ export async function cancelOrder(
 					.run();
 			} else if (p.status === 'menunggu') {
 				tx.update(payments)
-					.set({ status: 'ditolak', note: 'Pesanan dibatalkan' })
+					.set({ status: 'ditolak', note: PAYMENT_NOTE_ORDER_CANCELLED })
 					.where(eq(payments.id, p.id))
 					.run();
 			}
@@ -324,7 +325,7 @@ export async function expireUnpaidOrders(limit = 200): Promise<number> {
 	let done = 0;
 	for (const { id } of due) {
 		try {
-			await cancelOrder(id, { id: null, role: 'system' }, 'Melewati batas waktu pembayaran');
+			await cancelOrder(id, { id: null, role: 'system' }, CANCEL_REASON_EXPIRED);
 			done++;
 		} catch (e) {
 			// OrderError = status sudah berubah (mis. bukti baru diunggah): wajar dilewati

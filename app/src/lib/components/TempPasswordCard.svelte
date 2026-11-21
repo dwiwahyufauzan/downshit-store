@@ -1,12 +1,21 @@
 <script lang="ts">
 	import Check from '@lucide/svelte/icons/check';
 	import Copy from '@lucide/svelte/icons/copy';
+	import { page } from '$app/state';
+	import { waLink } from '#lib/utils/whatsapp';
+	import { tempPasswordMessage } from '#lib/utils/wa-messages';
 
 	let {
 		customerName,
+		customerEmail = '',
 		tempPassword,
 		customerPhone = null
-	}: { customerName: string; tempPassword: string; customerPhone?: string | null } = $props();
+	}: {
+		customerName: string;
+		customerEmail?: string;
+		tempPassword: string;
+		customerPhone?: string | null;
+	} = $props();
 
 	let copied = $state(false);
 
@@ -20,14 +29,18 @@
 		}
 	}
 
-	// 08xxx / +62xxx / 62xxx → 62xxx untuk tautan wa.me
-	const waNumber = $derived.by(() => {
-		const d = (customerPhone ?? '').replace(/\D/g, '');
-		if (!d) return '';
-		return d.startsWith('0') ? `62${d.slice(1)}` : d;
-	});
-	const waText = $derived(
-		`Halo ${customerName}, password sementara akun Downshit Anda: ${tempPassword}\nSilakan masuk lalu segera ganti password Anda.`
+	// pesan memuat email akun, password sementara, dan tautan masuk (lihat utils/wa-messages)
+	const waUrl = $derived(
+		waLink(
+			customerPhone,
+			tempPasswordMessage({
+				name: customerName,
+				email: customerEmail,
+				password: tempPassword,
+				storeName: page.data.store?.name ?? 'Downshit Store',
+				loginUrl: `${page.data.origin ?? page.url.origin}/login`
+			})
+		)
 	);
 </script>
 
@@ -47,15 +60,10 @@
 				<Copy size={16} /> Salin
 			{/if}
 		</button>
-		{#if waNumber}
-			<a
-				class="btn"
-				href="https://wa.me/{waNumber}?text={encodeURIComponent(waText)}"
-				target="_blank"
-				rel="noopener noreferrer"
-			>
-				Kirim via WhatsApp
-			</a>
+		{#if waUrl}
+			<a class="btn" href={waUrl} target="_blank" rel="noopener noreferrer"> Kirim via WhatsApp </a>
+		{:else}
+			<span class="self-center text-xs text-smoke">Nomor WhatsApp pelanggan belum valid</span>
 		{/if}
 	</div>
 	<p class="mt-4 text-xs text-smoke">

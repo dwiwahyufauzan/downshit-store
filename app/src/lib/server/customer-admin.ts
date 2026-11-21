@@ -6,7 +6,14 @@ import { hashPassword } from './auth';
 import { logActivity } from './activity';
 
 export type CustomerActionResult =
-	| { ok: true; name: string; phone: string | null; isActive: boolean; tempPassword?: string }
+	| {
+			ok: true;
+			name: string;
+			email: string;
+			phone: string | null;
+			isActive: boolean;
+			tempPassword?: string;
+	  }
 	| { ok: false; status: number; message: string };
 
 /**
@@ -43,7 +50,7 @@ export async function setCustomerActive(
 				tx
 			);
 		}
-		return { ok: true, name: cust.name, phone: cust.phone, isActive: next };
+		return { ok: true, name: cust.name, email: cust.email, phone: cust.phone, isActive: next };
 	});
 }
 
@@ -82,6 +89,7 @@ export async function resetCustomerPassword(
 		return {
 			ok: true,
 			name: cust.name,
+			email: cust.email,
 			phone: cust.phone,
 			isActive: cust.isActive,
 			tempPassword: temp
