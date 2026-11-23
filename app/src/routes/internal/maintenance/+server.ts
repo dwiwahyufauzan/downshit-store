@@ -5,6 +5,7 @@ import { purgeExpiredSessions } from '#lib/server/auth';
 import { purgeOld } from '#lib/server/rate-limit';
 import { expireUnpaidOrders } from '#lib/server/orders';
 import { autoCompleteShippedOrders } from '#lib/server/order-flow';
+import { reconcileGatewayPayments } from '#lib/server/gateway-payments';
 import type { RequestHandler } from './$types';
 
 const digest = (s: string) => createHash('sha256').update(s).digest();
@@ -33,6 +34,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	return json({
 		expiredOrders: await run('expireUnpaidOrders', expireUnpaidOrders),
 		completedOrders: await run('autoCompleteShippedOrders', autoCompleteShippedOrders),
+		reconciledGatewayPayments: await run('reconcileGatewayPayments', reconcileGatewayPayments),
 		purgedSessions: await run('purgeExpiredSessions', purgeExpiredSessions),
 		purgedLoginAttempts: await run('purgeOld', purgeOld)
 	});

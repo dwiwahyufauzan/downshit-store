@@ -9,12 +9,13 @@ const NEEDS_LOGIN = [
 	/^\/keranjang(\/|$)/,
 	/^\/checkout(\/|$)/,
 	/^\/pesanan(\/|$)/,
+	/^\/simulasi-bayar(\/|$)/,
 	/^\/profil(\/|$)/,
 	/^\/favorit(\/|$)/
 ];
 const CATALOG = [/^\/produk(\/|$)/, /^\/bundling(\/|$)/];
 // Path yang tidak butuh sesi → hemat satu query DB per gambar/permintaan (bukti bayar tetap butuh sesi)
-const NO_SESSION = [/^\/uploads\/(products|bundles)\//, /^\/internal\//];
+const NO_SESSION = [/^\/uploads\/(products|bundles)\//, /^\/internal\//, /^\/api\/midtrans\//];
 // Akun yang wajib ganti password (BR-24) hanya boleh membuka halaman ini
 const FORCED_CHANGE_ALLOWED = [
 	/^\/profil(\/|$)/,

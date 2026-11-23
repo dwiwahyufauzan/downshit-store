@@ -27,15 +27,11 @@ import { CANCEL_REASON_EXPIRED, PAYMENT_NOTE_ORDER_CANCELLED } from '#lib/consta
 import { logActivity } from './activity';
 import { generateOrderCode } from './codes';
 import { canCancel, type Status } from './order-status';
+import { OrderError } from './order-error';
+import { cancelTransaction } from './midtrans';
+import { syncPendingForOrder } from './gateway-payments';
 
-export class OrderError extends Error {
-	kind: string;
-	constructor(message: string, kind = 'bad_request') {
-		super(message);
-		this.name = 'OrderError';
-		this.kind = kind;
-	}
-}
+export { OrderError };
 
 type ShippingInfo = {
 	recipientName: string;
@@ -240,7 +236,9 @@ export async function cancelOrder(
 	actor: { id: number | null; role: 'konsumen' | 'admin' | 'system' },
 	reason: string
 ) {
-	return transact((tx) => {
+	// transaksi online yang belum dibayar ikut dibatalkan di Midtrans (VA/kode bayar langsung tidak berlaku)
+	const gatewayToCancel: string[] = [];
+	await transact((tx) => {
 		const o = tx.select().from(orders).where(eq(orders.id, orderId)).get();
 		if (!o) throw new OrderError('Pesanan tidak ditemukan', 'not_found');
 
@@ -288,6 +286,7 @@ export async function cancelOrder(
 					.set({ status: 'ditolak', note: PAYMENT_NOTE_ORDER_CANCELLED })
 					.where(eq(payments.id, p.id))
 					.run();
+				if (p.gatewayOrderId) gatewayToCancel.push(p.gatewayOrderId);
 			}
 		}
 
@@ -310,6 +309,7 @@ export async function cancelOrder(
 			tx
 		);
 	});
+	await Promise.all(gatewayToCancel.map(cancelTransaction));
 }
 
 /** Batalkan semua pesanan menunggu_pembayaran yang melewati batas bayar. */
@@ -325,6 +325,8 @@ export async function expireUnpaidOrders(limit = 200): Promise<number> {
 	let done = 0;
 	for (const { id } of due) {
 		try {
+			// pembayaran online yang lunas persis di batas waktu (notifikasi telat) jangan sampai dibatalkan
+			await syncPendingForOrder(id);
 			await cancelOrder(id, { id: null, role: 'system' }, CANCEL_REASON_EXPIRED);
 			done++;
 		} catch (e) {

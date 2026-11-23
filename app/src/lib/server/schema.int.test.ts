@@ -2,7 +2,7 @@
  * SRS-NF-003 (basis data terstruktur) + jalur instal produksi:
  *  - skema hasil `drizzle-kit export --sql` (dipakai deploy.sh pada instal pertama) HARUS identik dengan
  *    skema hasil `drizzle-kit push` (dipakai tes & dev): tabel, kolom, tipe, default, indeks, kunci asing.
- *  - 23 tabel aplikasi, FK konsisten, tanpa data yatim pada data sintetis.
+ *  - 24 tabel aplikasi, FK konsisten, tanpa data yatim pada data sintetis.
  * Tidak memakai modul db aplikasi; hanya berkas template kosong dari tests/global-setup.ts.
  */
 import { execSync } from 'node:child_process';
@@ -23,6 +23,7 @@ const APP_TABLES = [
 	'order_item_components',
 	'order_items',
 	'orders',
+	'payment_simulations',
 	'payments',
 	'product_images',
 	'product_sizes',
@@ -79,7 +80,7 @@ describe('skema database (NF-03)', () => {
 		expect(template, 'tests/global-setup.ts harus menyetel TEST_DB_TEMPLATE').toBeTruthy();
 	});
 
-	it('berisi tepat 23 tabel aplikasi', () => {
+	it('berisi tepat 24 tabel aplikasi', () => {
 		const db = new Database(template!, { readonly: true });
 		expect(describeDb(db).tables).toEqual(APP_TABLES);
 		db.close();

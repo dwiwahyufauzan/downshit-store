@@ -53,6 +53,62 @@ export const PAYMENT_STATUS_BADGE: Record<string, string> = {
 	dikembalikan: 'badge-muted'
 };
 
+/**
+ * Metode pembayaran yang dipilih pelanggan. `transfer_bank` = manual (unggah bukti, admin memverifikasi);
+ * empat lainnya = pembayaran online lewat Midtrans (terkonfirmasi otomatis lewat notifikasi).
+ * `channels` = nilai `enabled_payments` Snap yang ditampilkan untuk grup tersebut.
+ */
+export const PAYMENT_METHODS = {
+	transfer_bank: {
+		label: 'Transfer bank (manual)',
+		hint: 'Transfer ke rekening toko, lalu unggah bukti. Diverifikasi admin.',
+		channels: []
+	},
+	ewallet: {
+		label: 'E-wallet',
+		hint: 'GoPay, OVO, DANA, ShopeePay. Otomatis terkonfirmasi.',
+		channels: ['gopay', 'ovo', 'dana', 'shopeepay']
+	},
+	qris: {
+		label: 'QRIS',
+		hint: 'Scan dengan aplikasi bank atau e-wallet apa pun. Otomatis terkonfirmasi.',
+		channels: ['other_qris']
+	},
+	va: {
+		label: 'Virtual Account',
+		hint: 'BCA, BNI, BRI, Permata, CIMB, Mandiri. Otomatis terkonfirmasi.',
+		channels: ['bca_va', 'bni_va', 'bri_va', 'permata_va', 'cimb_va', 'echannel']
+	},
+	minimarket: {
+		label: 'Minimarket',
+		hint: 'Bayar tunai di Indomaret atau Alfamart. Otomatis terkonfirmasi.',
+		channels: ['indomaret', 'alfamart']
+	}
+} as const;
+
+export type PaymentMethod = keyof typeof PAYMENT_METHODS;
+export const PAYMENT_METHOD_KEYS = Object.keys(PAYMENT_METHODS) as PaymentMethod[];
+export type GatewayMethod = Exclude<PaymentMethod, 'transfer_bank'>;
+export const GATEWAY_METHOD_KEYS = PAYMENT_METHOD_KEYS.filter(
+	(k): k is GatewayMethod => k !== 'transfer_bank'
+);
+
+export const isGatewayMethod = (m: string): m is GatewayMethod =>
+	(GATEWAY_METHOD_KEYS as string[]).includes(m);
+
+/** Nama metode untuk tampilan; nilai tak dikenal ditampilkan apa adanya */
+export const paymentMethodLabel = (m: string): string =>
+	(PAYMENT_METHODS as Record<string, { label: string }>)[m]?.label ?? m;
+
+/** Catatan pembayaran online yang dicatat otomatis (tampil di riwayat pembayaran) */
+export const PAYMENT_NOTE_GATEWAY_REPLACED = 'Diganti dengan metode pembayaran lain';
+export const PAYMENT_NOTE_GATEWAY_EXPIRED = 'Waktu pembayaran online habis';
+export const PAYMENT_NOTE_GATEWAY_FAILED = 'Pembayaran online gagal atau dibatalkan';
+export const PAYMENT_NOTE_LATE_REFUND =
+	'Dibayar setelah pesanan dibatalkan. Dana perlu dikembalikan manual lewat dashboard Midtrans';
+export const PAYMENT_NOTE_DOUBLE_REFUND =
+	'Pembayaran ganda. Dana perlu dikembalikan manual lewat dashboard Midtrans';
+
 /** Kurir yang tersedia di form pengiriman admin (SRS-F-014) */
 export const COURIERS = [
 	'JNE',
@@ -83,3 +139,21 @@ export const PAID_STATUSES: readonly OrderStatus[] = ['diproses', 'dikirim', 'se
 
 /** Jumlah produk per halaman di katalog (/produk) */
 export const CATALOG_PAGE_SIZE = 50;
+
+/** Nama saluran pembayaran online (kunci dari `channelOf` di midtrans.ts) untuk tampilan */
+export const GATEWAY_TYPE_LABEL: Record<string, string> = {
+	gopay: 'GoPay',
+	shopeepay: 'ShopeePay',
+	dana: 'DANA',
+	ovo: 'OVO',
+	qris: 'QRIS',
+	other_qris: 'QRIS',
+	bca_va: 'BCA Virtual Account',
+	bni_va: 'BNI Virtual Account',
+	bri_va: 'BRI Virtual Account',
+	permata_va: 'Permata Virtual Account',
+	cimb_va: 'CIMB Niaga Virtual Account',
+	echannel: 'Mandiri Bill Payment',
+	indomaret: 'Indomaret',
+	alfamart: 'Alfamart'
+};

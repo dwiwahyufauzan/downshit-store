@@ -318,9 +318,17 @@ export const payments = sqliteTable(
 		orderId: integer('order_id')
 			.notNull()
 			.references(() => orders.id, { onDelete: 'cascade' }),
+		// 'transfer_bank' (bukti diunggah, diverifikasi admin) atau grup gateway: 'ewallet' | 'qris' | 'va' | 'minimarket'
 		method: text('method').notNull().default('transfer_bank'),
 		amount: integer('amount').notNull(),
 		proofUrl: text('proof_url'),
+		// ---- khusus pembayaran online (Midtrans); NULL untuk transfer manual ----
+		gatewayOrderId: text('gateway_order_id'), // order_id unik per percobaan: "<kode>-<n>"
+		gatewayType: text('gateway_type'), // payment_type dari Midtrans: gopay, qris, bank_transfer, cstore, …
+		gatewayTxId: text('gateway_tx_id'), // transaction_id dari Midtrans
+		paymentCode: text('payment_code'), // nomor VA / kode bayar minimarket / bill key
+		redirectUrl: text('redirect_url'), // halaman bayar Midtrans (Snap)
+		expiresAt: text('expires_at'), // batas bayar transaksi di gateway
 		status: text('status', { enum: ['menunggu', 'dikonfirmasi', 'ditolak', 'dikembalikan'] })
 			.notNull()
 			.default('menunggu'),
@@ -329,7 +337,38 @@ export const payments = sqliteTable(
 		confirmedAt: text('confirmed_at'),
 		createdAt: createdAt()
 	},
-	(t) => [index('idx_pay_order').on(t.orderId), index('idx_pay_status').on(t.status)]
+	(t) => [
+		index('idx_pay_order').on(t.orderId),
+		index('idx_pay_status').on(t.status),
+		uniqueIndex('uq_pay_gateway_order').on(t.gatewayOrderId)
+	]
+);
+
+/**
+ * Transaksi payment gateway SIMULASI (mode PAYMENT_SIMULATOR, pengganti Midtrans untuk demo).
+ * Satu baris per percobaan bayar online; tidak dipakai bila Midtrans asli terkonfigurasi.
+ */
+export const paymentSimulations = sqliteTable(
+	'payment_simulations',
+	{
+		id: id(),
+		gatewayOrderId: text('gateway_order_id').notNull(), // = payments.gateway_order_id
+		token: text('token').notNull(), // rahasia di URL halaman bayar simulasi
+		amount: integer('amount').notNull(),
+		method: text('method').notNull(), // grup: ewallet | qris | va | minimarket
+		channel: text('channel'), // saluran yang dipilih pelanggan (gopay, bca_va, indomaret, …); NULL = belum memilih
+		paymentCode: text('payment_code'), // nomor VA / kode bayar yang dibangkitkan simulator
+		status: text('status', { enum: ['pending', 'settlement', 'deny', 'expire', 'cancel'] })
+			.notNull()
+			.default('pending'),
+		expiresAt: text('expires_at').notNull(),
+		createdAt: createdAt(),
+		updatedAt: updatedAt()
+	},
+	(t) => [
+		uniqueIndex('uq_sim_gateway_order').on(t.gatewayOrderId),
+		uniqueIndex('uq_sim_token').on(t.token)
+	]
 );
 
 export const shipments = sqliteTable(

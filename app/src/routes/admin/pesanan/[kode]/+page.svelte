@@ -5,7 +5,13 @@
 	import MessageCircle from '@lucide/svelte/icons/message-circle';
 	import Printer from '@lucide/svelte/icons/printer';
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
-	import { COURIERS, PAYMENT_STATUS_BADGE, PAYMENT_STATUS_LABEL } from '#lib/constants';
+	import {
+		COURIERS,
+		GATEWAY_TYPE_LABEL,
+		PAYMENT_STATUS_BADGE,
+		PAYMENT_STATUS_LABEL,
+		paymentMethodLabel
+	} from '#lib/constants';
 	import { formatRupiah, formatDate } from '#lib/utils/format';
 	import type { PageProps } from './$types';
 
@@ -14,6 +20,11 @@
 	let o = $derived(data.order);
 	let pay = $derived(data.latestPayment);
 	let ship = $derived(data.shipment);
+	// pembayaran online (Midtrans) terkonfirmasi otomatis; verifikasi manual hanya untuk transfer bank
+	let isGateway = $derived(!!pay?.gatewayOrderId);
+	let pendingGateway = $derived(
+		data.payments.find((p) => p.gatewayOrderId && p.status === 'menunggu') ?? null
+	);
 
 	let showRejectModal = $state(false);
 	let showCancelModal = $state(false);
@@ -94,7 +105,35 @@
 			<div class="panel">
 				<h2 class="panel-title">Verifikasi Pembayaran</h2>
 
-				{#if pay?.proofUrl}
+				{#if isGateway && pay}
+					<div class="mt-4 border border-line bg-mist/50 p-4 text-sm">
+						<p class="eyebrow">Pembayaran online (Midtrans)</p>
+						<p class="mt-1 font-bold uppercase">
+							{paymentMethodLabel(pay.method)}{pay.gatewayType
+								? ` · ${GATEWAY_TYPE_LABEL[pay.gatewayType] ?? pay.gatewayType}`
+								: ''}
+						</p>
+						{#if pay.paymentCode}
+							<p class="mt-1 tabular-nums">Kode bayar: <strong>{pay.paymentCode}</strong></p>
+						{/if}
+						<p class="mt-1 text-xs break-all text-smoke">ID transaksi: {pay.gatewayOrderId}</p>
+						{#if pay.status === 'dikonfirmasi'}
+							<p class="mt-2 text-xs text-ok">
+								Lunas otomatis {pay.confirmedAt ? formatDate(pay.confirmedAt) : ''}. Tidak perlu
+								verifikasi manual.
+							</p>
+						{:else if pay.status === 'menunggu'}
+							<p class="mt-2 text-xs text-smoke">
+								Menunggu pelanggan membayar. Pesanan otomatis diproses setelah pembayaran masuk.
+							</p>
+						{/if}
+						{#if pay.status === 'dikembalikan'}
+							<p class="mt-2 text-xs text-danger">
+								Dana perlu dikembalikan manual lewat dashboard Midtrans.
+							</p>
+						{/if}
+					</div>
+				{:else if pay?.proofUrl}
 					<div class="mt-4">
 						<p class="eyebrow">
 							Bukti Transfer Terbaru &middot; Unggahan ke-{data.payments.length}
@@ -112,11 +151,19 @@
 					<div
 						class="mt-4 border border-dashed border-line bg-mist/50 p-4 text-center text-xs text-smoke"
 					>
-						Konsumen belum mengunggah bukti transfer.
+						Konsumen belum membayar atau mengunggah bukti transfer.
 					</div>
 				{/if}
 
-				{#if o.status === 'menunggu_konfirmasi'}
+				{#if pendingGateway && o.status === 'menunggu_pembayaran'}
+					<form method="POST" action="?/sinkron" class="mt-4">
+						<button type="submit" class="btn btn-block text-center whitespace-normal">
+							Periksa status ke Midtrans
+						</button>
+					</form>
+				{/if}
+
+				{#if o.status === 'menunggu_konfirmasi' && !isGateway}
 					<div class="mt-4 flex flex-col gap-2">
 						<form method="POST" action="?/konfirmasi">
 							<button type="submit" class="btn btn-primary btn-block text-center whitespace-normal">
@@ -147,6 +194,11 @@
 										</span>
 										<span class="text-[10px] text-smoke">{formatDate(p.createdAt)}</span>
 									</div>
+									<p class="mt-1.5 font-semibold">
+										{paymentMethodLabel(p.method)}{p.gatewayType
+											? ` · ${GATEWAY_TYPE_LABEL[p.gatewayType] ?? p.gatewayType}`
+											: ''}
+									</p>
 									{#if p.note}
 										<p class="mt-1 {p.status === 'ditolak' ? 'text-danger' : 'text-smoke'}">
 											{p.status === 'ditolak' ? 'Alasan' : 'Catatan'}: {p.note}

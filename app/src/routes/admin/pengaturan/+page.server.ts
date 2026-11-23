@@ -4,11 +4,15 @@ import { getSettings, setSettings } from '#lib/server/settings';
 import { transact } from '#lib/server/db';
 import { settingsSchema } from '#lib/schemas/settings';
 import { logActivity } from '#lib/server/activity';
+import { gatewayMode, isGatewayConfigured } from '#lib/server/midtrans';
 
 export const load = async ({ locals }) => {
 	requireRole(locals, 'admin');
 	const currentSettings = await getSettings();
-	return { settings: currentSettings };
+	return {
+		settings: currentSettings,
+		gateway: { configured: isGatewayConfigured(), mode: gatewayMode() }
+	};
 };
 
 export const actions = {
@@ -26,7 +30,12 @@ export const actions = {
 			lowStock: fd.get('lowStock'),
 			paymentDeadlineHours: fd.get('paymentDeadlineHours'),
 			maxUnpaidOrders: fd.get('maxUnpaidOrders'),
-			autoCompleteDays: fd.get('autoCompleteDays')
+			autoCompleteDays: fd.get('autoCompleteDays'),
+			payTransfer: fd.get('payTransfer') === 'on',
+			payEwallet: fd.get('payEwallet') === 'on',
+			payQris: fd.get('payQris') === 'on',
+			payVa: fd.get('payVa') === 'on',
+			payMinimarket: fd.get('payMinimarket') === 'on'
 		};
 
 		const parsed = settingsSchema.safeParse(raw);

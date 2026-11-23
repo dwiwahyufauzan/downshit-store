@@ -6,6 +6,13 @@ import { users } from '#lib/server/db/schema';
 import { getCartDetails } from '#lib/server/cart';
 import { getSettings } from '#lib/server/settings';
 import { createOrderFromCart, OrderError } from '#lib/server/orders';
+import {
+	enabledMethods,
+	getPaymentOptions,
+	startOnlinePayment
+} from '#lib/server/gateway-payments';
+import { gatewayMode } from '#lib/server/midtrans';
+import { isGatewayMethod, type PaymentMethod } from '#lib/constants';
 import { checkoutSchema } from '#lib/schemas/checkout';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -41,10 +48,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	const shippingCost = settings.shippingCost ?? 0;
 	const total = cart.subtotal + shippingCost;
+	const paymentOptions = await getPaymentOptions(settings);
 
 	return {
 		cart,
 		settings,
+		paymentOptions,
+		simulator: gatewayMode() === 'simulator',
 		userProfile: {
 			recipientName: userProfile?.name ?? '',
 			recipientPhone: userProfile?.phone ?? '',
@@ -57,7 +67,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 };
 
 export type CheckoutFormErrors = Partial<
-	Record<'recipientName' | 'recipientPhone' | 'shippingAddress' | 'notes', string[]>
+	Record<
+		'recipientName' | 'recipientPhone' | 'shippingAddress' | 'notes' | 'paymentMethod',
+		string[]
+	>
 >;
 
 export const actions: Actions = {
@@ -69,7 +82,8 @@ export const actions: Actions = {
 			recipientName: formData.get('recipientName')?.toString() ?? '',
 			recipientPhone: formData.get('recipientPhone')?.toString() ?? '',
 			shippingAddress: formData.get('shippingAddress')?.toString() ?? '',
-			notes: formData.get('notes')?.toString() || undefined
+			notes: formData.get('notes')?.toString() || undefined,
+			paymentMethod: formData.get('paymentMethod')?.toString() || undefined
 		};
 
 		const parse = checkoutSchema.safeParse(raw);
@@ -80,6 +94,18 @@ export const actions: Actions = {
 				errors,
 				values: raw,
 				message: 'Mohon periksa kembali formulir pengiriman Anda.'
+			});
+		}
+
+		const method = parse.data.paymentMethod as PaymentMethod;
+		// metode harus yang sedang aktif di toko (formulir bisa dipalsukan)
+		if (!enabledMethods(await getSettings()).includes(method)) {
+			return fail(400, {
+				errors: {
+					paymentMethod: ['Metode pembayaran ini sedang tidak tersedia']
+				} as CheckoutFormErrors,
+				values: raw,
+				message: 'Pilih metode pembayaran yang tersedia.'
 			});
 		}
 
@@ -109,6 +135,23 @@ export const actions: Actions = {
 					'Terjadi kesalahan sistem saat memproses pesanan. Silakan coba beberapa saat lagi.',
 				values: raw
 			});
+		}
+
+		// Pembayaran online: langsung ke halaman bayar Midtrans. Bila gagal, pesanan tetap dibuat dan
+		// pelanggan memilih ulang metode di halaman pesanan (tidak perlu mengulang checkout).
+		if (isGatewayMethod(method)) {
+			try {
+				const { redirectUrl } = await startOnlinePayment(
+					createdOrder.code,
+					locals.user!.id,
+					method
+				);
+				throw redirect(303, redirectUrl);
+			} catch (err) {
+				if (!(err instanceof OrderError)) throw err; // termasuk redirect
+				console.error('Checkout: gagal memulai pembayaran online', err.message);
+				throw redirect(303, `/pesanan/${createdOrder.code}?baru=1&bayar=gagal`);
+			}
 		}
 
 		throw redirect(303, `/pesanan/${createdOrder.code}?baru=1`);

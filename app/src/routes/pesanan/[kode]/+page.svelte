@@ -3,9 +3,17 @@
 	import Breadcrumb from '#lib/components/Breadcrumb.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
+	import PaymentMethodPicker from '#lib/components/PaymentMethodPicker.svelte';
 	import StarInput from '#lib/components/StarInput.svelte';
 	import Stars from '#lib/components/Stars.svelte';
-	import { PAYMENT_STATUS_BADGE, PAYMENT_STATUS_LABEL } from '#lib/constants';
+	import {
+		GATEWAY_TYPE_LABEL,
+		PAYMENT_STATUS_BADGE,
+		PAYMENT_STATUS_LABEL,
+		paymentMethodLabel,
+		type PaymentMethod
+	} from '#lib/constants';
+	import { invalidateAll } from '$app/navigation';
 	import { formatDate, formatRupiah } from '#lib/utils/format';
 	import { trackingPageFor } from '#lib/utils/courier';
 	import { cancelReasonText } from '#lib/utils/wa-messages';
@@ -15,12 +23,32 @@
 	import Copy from '@lucide/svelte/icons/copy';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import Upload from '@lucide/svelte/icons/upload';
+	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 
 	let o = $derived(data.order);
 	let copied = $state('');
+	let checking = $state(false);
+	// metode terpilih: lanjutkan percobaan bayar online yang masih terbuka, jika ada (nilai awal saja)
+	// svelte-ignore state_referenced_locally
+	let method = $state<PaymentMethod>(
+		(data.gatewayPayment?.method as PaymentMethod | undefined) ??
+			data.paymentOptions[0]?.method ??
+			'transfer_bank'
+	);
+	const online = $derived(method !== 'transfer_bank');
+	const gp = $derived(data.gatewayPayment);
+	const gpChannel = $derived(
+		gp?.gatewayType ? (GATEWAY_TYPE_LABEL[gp.gatewayType] ?? gp.gatewayType) : null
+	);
+
+	async function recheck() {
+		checking = true;
+		await invalidateAll();
+		checking = false;
+	}
 	const trackUrl = $derived(trackingPageFor(data.shipment?.courier));
 	const cancelReason = $derived(cancelReasonText(o.cancelReason));
 
@@ -117,8 +145,28 @@
 		<div class="mt-6">
 			<Alert
 				type="success"
-				message="Pesanan berhasil dibuat. Transfer sesuai total di bawah, lalu unggah bukti pembayarannya sebelum batas waktu."
+				message="Pesanan berhasil dibuat. Selesaikan pembayaran di bawah sebelum batas waktu."
 			/>
+		</div>
+	{/if}
+
+	{#if data.payReturn === 'gagal' && o.status === 'menunggu_pembayaran'}
+		<div class="mt-6">
+			<Alert
+				type="warning"
+				message="Pesanan sudah dibuat, tetapi halaman pembayaran online gagal dibuka. Pilih metode pembayaran di bawah dan coba lagi."
+			/>
+		</div>
+	{:else if data.payReturn === 'kembali' && o.status === 'menunggu_pembayaran'}
+		<div class="mt-6">
+			<Alert
+				type="info"
+				message="Pembayaranmu belum kami terima. Bila sudah membayar, tunggu sebentar lalu tekan Periksa status pembayaran."
+			/>
+		</div>
+	{:else if data.payReturn === 'kembali' && o.status === 'diproses'}
+		<div class="mt-6">
+			<Alert type="success" message="Pembayaran berhasil diterima. Pesananmu sedang diproses." />
 		</div>
 	{/if}
 
@@ -211,10 +259,10 @@
 			{#if o.status === 'menunggu_pembayaran'}
 				<section class="border border-ink p-5 sm:p-6">
 					<p class="eyebrow">Langkah berikutnya</p>
-					<h2 class="section-title mt-2 !text-xl sm:!text-2xl">Transfer pembayaran</h2>
+					<h2 class="section-title mt-2 !text-xl sm:!text-2xl">Pembayaran</h2>
 					<p class="mt-3 text-sm text-smoke">
-						Transfer tepat <strong class="text-ink">{formatRupiah(o.total)}</strong> lalu unggah bukti
-						transfernya di bawah.
+						Total yang harus dibayar <strong class="text-ink">{formatRupiah(o.total)}</strong>
+						(sudah termasuk ongkos kirim).
 					</p>
 
 					{#if o.expiresAt}
@@ -235,69 +283,149 @@
 
 					{#if data.payment?.status === 'ditolak'}
 						<div class="mt-5">
-							<Alert
-								type="error"
-								message="Bukti transfer ditolak: {data.payment.note ||
-									'bukti tidak jelas atau nominal tidak cocok'}. Silakan unggah ulang bukti yang valid."
-							/>
+							{#if data.payment.gatewayOrderId}
+								<Alert
+									type="error"
+									message="Pembayaran online sebelumnya tidak berhasil{data.payment.note
+										? ` (${data.payment.note})`
+										: ''}. Silakan pilih metode pembayaran dan coba lagi."
+								/>
+							{:else}
+								<Alert
+									type="error"
+									message="Bukti transfer ditolak: {data.payment.note ||
+										'bukti tidak jelas atau nominal tidak cocok'}. Silakan unggah ulang bukti yang valid."
+								/>
+							{/if}
 						</div>
 					{/if}
 
-					<dl class="mt-6 grid gap-px border border-line bg-line sm:grid-cols-2">
-						<div class="bg-paper p-4 sm:col-span-2">
-							<dt class="eyebrow">Rekening tujuan</dt>
-							<dd class="mt-1 text-sm font-bold uppercase">
-								{data.settings.bankName ?? 'BCA'} &middot; a.n.
-								{data.settings.bankHolder ?? 'DOWNSHIT STORE'}
-							</dd>
-							<dd class="mt-2 flex flex-wrap items-center justify-between gap-3">
-								<span class="display text-2xl tracking-[0.04em] tabular-nums">
-									{data.settings.bankNumber ?? '-'}
-								</span>
-								<button
-									type="button"
-									onclick={() => copyToClipboard(data.settings.bankNumber ?? '', 'rek')}
-									class="btn btn-sm"
-								>
-									{#if copied === 'rek'}
-										<Check size={14} /> Tersalin
-									{:else}
-										<Copy size={14} /> Salin
-									{/if}
+					<!-- Pembayaran online yang sedang menunggu -->
+					{#if gp}
+						<div class="mt-6 border border-warn bg-warn-bg/40 p-4 text-sm">
+							<p class="eyebrow">Menunggu pembayaran online</p>
+							<p class="mt-1 font-bold uppercase">
+								{paymentMethodLabel(gp.method)}{gpChannel ? ` · ${gpChannel}` : ''}
+							</p>
+							{#if gp.paymentCode}
+								<div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+									<span class="display text-2xl tracking-[0.04em] tabular-nums"
+										>{gp.paymentCode}</span
+									>
+									<button
+										type="button"
+										onclick={() => copyToClipboard(gp.paymentCode ?? '', 'kode')}
+										class="btn btn-sm"
+									>
+										{#if copied === 'kode'}
+											<Check size={14} /> Tersalin
+										{:else}
+											<Copy size={14} /> Salin kode
+										{/if}
+									</button>
+								</div>
+							{/if}
+							<div class="mt-4 flex flex-wrap gap-2">
+								{#if gp.redirectUrl}
+									<a href={gp.redirectUrl} class="btn btn-sm btn-primary">
+										Lanjutkan pembayaran <ExternalLink size={14} />
+									</a>
+								{/if}
+								<button type="button" class="btn btn-sm" onclick={recheck} disabled={checking}>
+									<RefreshCw size={14} class={checking ? 'animate-spin' : ''} />
+									Periksa status pembayaran
 								</button>
-							</dd>
+							</div>
+							<p class="hint">
+								Setelah kamu membayar, pesanan otomatis diproses. Ingin ganti metode? Pilih metode
+								lain di bawah, pembayaran ini akan dibatalkan.
+							</p>
 						</div>
-						<div class="bg-paper p-4 sm:col-span-2">
-							<dt class="eyebrow">Total yang harus ditransfer</dt>
-							<dd class="price mt-1 text-2xl">{formatRupiah(o.total)}</dd>
-							<dd class="hint">Sesuai nominal, sudah termasuk ongkos kirim.</dd>
-						</div>
-					</dl>
+					{/if}
 
-					<form
-						method="POST"
-						action="?/bayar"
-						enctype="multipart/form-data"
-						class="mt-6 border border-dashed border-ink bg-mist/50 p-5"
-					>
-						<label for="proofImage" class="label">Unggah bukti transfer</label>
-						<p class="hint !mt-0 mb-3">
-							Format JPG, PNG, atau WEBP. Maksimal {data.maxUploadMb} MB.
-						</p>
-						<div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-							<input
-								type="file"
-								id="proofImage"
-								name="proofImage"
-								accept="image/jpeg,image/png,image/webp"
-								required
-								class="block w-full min-w-0 text-xs text-smoke file:mr-4 file:cursor-pointer file:border-0 file:bg-ink file:px-4 file:py-2.5 file:text-xs file:font-semibold file:tracking-[0.12em] file:text-paper file:uppercase"
-							/>
-							<button type="submit" class="btn btn-primary shrink-0">
-								<Upload size={14} /> Kirim bukti
+					<div class="mt-6">
+						<PaymentMethodPicker options={data.paymentOptions} bind:value={method} />
+					</div>
+
+					{#if online}
+						<form method="POST" action="?/bayarOnline" class="mt-5">
+							<input type="hidden" name="paymentMethod" value={method} />
+							<button
+								type="submit"
+								class="btn btn-primary btn-block sm:w-auto"
+								disabled={isOverdue}
+							>
+								{gp?.method === method ? 'Buka halaman pembayaran' : 'Bayar sekarang'}
+								&middot; {formatRupiah(o.total)}
 							</button>
-						</div>
-					</form>
+							<p class="hint">
+								Kamu akan diarahkan ke halaman pembayaran {data.simulator
+									? 'simulasi (tanpa uang sungguhan)'
+									: 'Midtrans yang aman'}. Tidak perlu unggah bukti.
+							</p>
+						</form>
+					{:else}
+						<dl class="mt-6 grid gap-px border border-line bg-line sm:grid-cols-2">
+							<div class="bg-paper p-4 sm:col-span-2">
+								<dt class="eyebrow">Rekening tujuan</dt>
+								<dd class="mt-1 text-sm font-bold uppercase">
+									{data.settings.bankName ?? 'BCA'} &middot; a.n.
+									{data.settings.bankHolder ?? 'DOWNSHIT STORE'}
+								</dd>
+								<dd class="mt-2 flex flex-wrap items-center justify-between gap-3">
+									<span class="display text-2xl tracking-[0.04em] tabular-nums">
+										{data.settings.bankNumber ?? '-'}
+									</span>
+									<button
+										type="button"
+										onclick={() => copyToClipboard(data.settings.bankNumber ?? '', 'rek')}
+										class="btn btn-sm"
+									>
+										{#if copied === 'rek'}
+											<Check size={14} /> Tersalin
+										{:else}
+											<Copy size={14} /> Salin
+										{/if}
+									</button>
+								</dd>
+							</div>
+							<div class="bg-paper p-4 sm:col-span-2">
+								<dt class="eyebrow">Total yang harus ditransfer</dt>
+								<dd class="price mt-1 text-2xl">{formatRupiah(o.total)}</dd>
+								<dd class="hint">Sesuai nominal, sudah termasuk ongkos kirim.</dd>
+							</div>
+						</dl>
+
+						<form
+							method="POST"
+							action="?/bayar"
+							enctype="multipart/form-data"
+							class="mt-6 border border-dashed border-ink bg-mist/50 p-5"
+						>
+							<label for="proofImage" class="label">Unggah bukti transfer</label>
+							<p class="hint !mt-0 mb-3">
+								Format JPG, PNG, atau WEBP. Maksimal {data.maxUploadMb} MB.
+							</p>
+							<div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+								<input
+									type="file"
+									id="proofImage"
+									name="proofImage"
+									accept="image/jpeg,image/png,image/webp"
+									required
+									class="block w-full min-w-0 text-xs text-smoke file:mr-4 file:cursor-pointer file:border-0 file:bg-ink file:px-4 file:py-2.5 file:text-xs file:font-semibold file:tracking-[0.12em] file:text-paper file:uppercase"
+								/>
+								<button type="submit" class="btn btn-primary shrink-0">
+									<Upload size={14} /> Kirim bukti
+								</button>
+							</div>
+							{#if gp}
+								<p class="hint">
+									Mengunggah bukti transfer akan membatalkan pembayaran online yang sedang menunggu.
+								</p>
+							{/if}
+						</form>
+					{/if}
 				</section>
 			{:else if o.status === 'menunggu_konfirmasi'}
 				<section class="border border-ink p-5 sm:p-6">
@@ -564,7 +692,7 @@
 
 				{#if data.paymentHistory.length > 0}
 					<div class="divider mt-5 pt-4">
-						<p class="eyebrow">Riwayat unggahan bukti</p>
+						<p class="eyebrow">Riwayat pembayaran</p>
 						<ul class="mt-3 space-y-2 text-xs">
 							{#each data.paymentHistory as p (p.id)}
 								<li class="border border-line bg-mist/50 p-2.5">
@@ -574,6 +702,11 @@
 										</span>
 										<span class="text-[10px] text-smoke">{formatDate(p.createdAt)}</span>
 									</div>
+									<p class="mt-1.5 font-semibold">
+										{paymentMethodLabel(p.method)}{p.gatewayType
+											? ` · ${GATEWAY_TYPE_LABEL[p.gatewayType] ?? p.gatewayType}`
+											: ''}
+									</p>
 									{#if p.note}
 										<p class="mt-1.5 text-smoke">
 											{p.status === 'ditolak' ? 'Alasan' : 'Catatan'}: {p.note}

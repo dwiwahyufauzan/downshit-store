@@ -3,16 +3,26 @@
 	import Alert from '#lib/components/Alert.svelte';
 	import Breadcrumb from '#lib/components/Breadcrumb.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
+	import PaymentMethodPicker from '#lib/components/PaymentMethodPicker.svelte';
+	import type { PaymentMethod } from '#lib/constants';
 	import { formatRupiah } from '#lib/utils/format';
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
 	import Clock from '@lucide/svelte/icons/clock';
-	import Landmark from '@lucide/svelte/icons/landmark';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 
 	let v = $derived((form?.values as Record<string, string | undefined>) ?? data.userProfile);
 	const deadline = $derived(data.settings.paymentDeadlineHours);
+
+	// pilihan sebelumnya dipertahankan bila formulir dikembalikan karena galat (nilai awal saja)
+	// svelte-ignore state_referenced_locally
+	let method = $state<PaymentMethod>(
+		(form?.values as { paymentMethod?: PaymentMethod } | undefined)?.paymentMethod ??
+			data.paymentOptions[0]?.method ??
+			'transfer_bank'
+	);
+	const online = $derived(method !== 'transfer_bank');
 </script>
 
 <svelte:head>
@@ -136,32 +146,53 @@
 
 			<!-- Pembayaran -->
 			<section class="panel bg-mist/50">
-				<div class="flex items-center gap-2">
-					<Landmark size={16} />
-					<h2 class="panel-title">Pembayaran: transfer bank manual</h2>
-				</div>
-				<p class="mt-3 text-sm text-smoke">
-					Setelah pesanan dibuat, transfer total pembayaran ke rekening resmi toko berikut.
-				</p>
+				<h2 class="panel-title">Metode pembayaran</h2>
 
-				<dl class="mt-5 grid gap-px border border-line bg-line sm:grid-cols-2">
-					<div class="bg-paper p-4">
-						<dt class="eyebrow">Bank tujuan</dt>
-						<dd class="mt-1 text-base font-bold">{data.settings.bankName ?? 'BCA'}</dd>
-					</div>
-					<div class="bg-paper p-4">
-						<dt class="eyebrow">Atas nama</dt>
-						<dd class="mt-1 text-base font-bold uppercase">
-							{data.settings.bankHolder ?? 'DOWNSHIT STORE'}
-						</dd>
-					</div>
-					<div class="bg-paper p-4 sm:col-span-2">
-						<dt class="eyebrow">Nomor rekening</dt>
-						<dd class="display mt-1 text-2xl tracking-[0.04em] tabular-nums">
-							{data.settings.bankNumber ?? '-'}
-						</dd>
-					</div>
-				</dl>
+				<div class="mt-5">
+					<PaymentMethodPicker options={data.paymentOptions} bind:value={method} />
+					{#if form?.errors?.paymentMethod}
+						<p class="field-error">{form.errors.paymentMethod[0]}</p>
+					{/if}
+				</div>
+
+				{#if online}
+					{#if data.simulator}
+						<p
+							class="mt-5 border-l-4 border-warn bg-warn-bg px-3 py-2 text-xs font-semibold text-warn"
+						>
+							MODE SIMULASI: pembayaran online memakai payment gateway tiruan (mirip Midtrans),
+							tanpa uang sungguhan.
+						</p>
+					{/if}
+					<p class="mt-5 text-sm text-smoke">
+						Setelah menekan <strong class="text-ink">Buat pesanan</strong>, kamu diarahkan ke
+						halaman pembayaran {data.simulator ? 'simulasi' : 'Midtrans yang aman'}. Pesanan
+						otomatis diproses begitu pembayaran berhasil, tanpa perlu unggah bukti.
+					</p>
+				{:else}
+					<p class="mt-5 text-sm text-smoke">
+						Setelah pesanan dibuat, transfer total pembayaran ke rekening resmi toko berikut.
+					</p>
+
+					<dl class="mt-4 grid gap-px border border-line bg-line sm:grid-cols-2">
+						<div class="bg-paper p-4">
+							<dt class="eyebrow">Bank tujuan</dt>
+							<dd class="mt-1 text-base font-bold">{data.settings.bankName ?? 'BCA'}</dd>
+						</div>
+						<div class="bg-paper p-4">
+							<dt class="eyebrow">Atas nama</dt>
+							<dd class="mt-1 text-base font-bold uppercase">
+								{data.settings.bankHolder ?? 'DOWNSHIT STORE'}
+							</dd>
+						</div>
+						<div class="bg-paper p-4 sm:col-span-2">
+							<dt class="eyebrow">Nomor rekening</dt>
+							<dd class="display mt-1 text-2xl tracking-[0.04em] tabular-nums">
+								{data.settings.bankNumber ?? '-'}
+							</dd>
+						</div>
+					</dl>
+				{/if}
 
 				<p class="mt-4 flex items-center gap-2 text-xs text-smoke">
 					<Clock size={14} class="shrink-0" />

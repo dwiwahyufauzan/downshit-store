@@ -38,5 +38,19 @@ export const variables = defineEnvVars({
 			'Token rahasia maintenance cron job (>= 32 karakter; kosong = endpoint menolak semua)',
 		schema: optional
 	},
+	MIDTRANS_SERVER_KEY: {
+		description:
+			'Server Key Midtrans (Settings → Access Keys). Kosong = pembayaran online nonaktif, hanya transfer manual',
+		schema: optional
+	},
+	MIDTRANS_IS_PRODUCTION: {
+		description: '"true" = Midtrans produksi; selain itu memakai Sandbox (bawaan)',
+		schema: optional
+	},
+	PAYMENT_SIMULATOR: {
+		description:
+			'"true" = payment gateway SIMULASI (mirip Midtrans, tanpa akun & tanpa uang sungguhan) untuk demo/pengujian. Diabaikan bila MIDTRANS_SERVER_KEY terisi',
+		schema: optional
+	},
 	PUBLIC_APP_NAME: { description: 'Nama aplikasi', public: true, schema: optional }
 });

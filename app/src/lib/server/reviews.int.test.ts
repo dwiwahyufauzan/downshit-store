@@ -22,7 +22,10 @@ vi.mock('$app/env/private', () => ({
 	SESSION_DAYS: '30',
 	UPLOAD_DIR: './tests/.tmp-uploads-reviews',
 	MAX_UPLOAD_MB: '2',
-	CRON_SECRET: 'x'.repeat(32)
+	CRON_SECRET: 'x'.repeat(32),
+	MIDTRANS_SERVER_KEY: undefined,
+	MIDTRANS_IS_PRODUCTION: undefined,
+	PAYMENT_SIMULATOR: undefined
 }));
 
 import { rmSync } from 'node:fs';

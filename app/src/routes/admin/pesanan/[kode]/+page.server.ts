@@ -13,6 +13,8 @@ import {
 	updateShipment
 } from '#lib/server/order-flow';
 import { cancelOrder } from '#lib/server/orders';
+import { syncPendingForOrder } from '#lib/server/gateway-payments';
+import { isGatewayConfigured } from '#lib/server/midtrans';
 import { allowedNext, canCancel, type Status } from '#lib/server/order-status';
 import { shipmentSchema } from '#lib/schemas/shipment';
 import { getSettings } from '#lib/server/settings';
@@ -104,6 +106,19 @@ export const actions = {
 			return orderFail(e);
 		}
 		return { success: true, message: 'Pembayaran dikonfirmasi. Pesanan masuk ke status diproses.' };
+	},
+
+	sinkron: async ({ locals, params }) => {
+		requireRole(locals, 'admin');
+		if (!isGatewayConfigured()) return fail(400, { message: 'Midtrans belum dikonfigurasi' });
+		const [o] = await db
+			.select({ id: orders.id })
+			.from(orders)
+			.where(eq(orders.code, params.kode))
+			.limit(1);
+		if (!o) throw error(404, 'Pesanan tidak ditemukan');
+		await syncPendingForOrder(o.id, 10_000);
+		return { success: true, message: 'Status pembayaran diperiksa ke Midtrans.' };
 	},
 
 	tolak: async ({ request, locals, params }) => {

@@ -107,9 +107,24 @@ describe('settingsSchema (TC-016-02)', () => {
 		lowStock: '5',
 		paymentDeadlineHours: '24',
 		maxUnpaidOrders: '3',
-		autoCompleteDays: '7'
+		autoCompleteDays: '7',
+		payTransfer: 'on'
 	};
 	it('valid', () => expect(settingsSchema.safeParse(ok).success).toBe(true));
+	it('kotak centang metode bayar: "on" aktif, kosong nonaktif', () => {
+		const r = settingsSchema.parse({ ...ok, payQris: 'on', payVa: null });
+		expect(r).toMatchObject({ payTransfer: true, payQris: true, payVa: false, payEwallet: false });
+	});
+	it('menolak bila semua metode pembayaran dimatikan', () => {
+		const r = settingsSchema.safeParse({ ...ok, payTransfer: null });
+		expect(r.success).toBe(false);
+		expect(r.error?.issues[0]?.message).toBe('Aktifkan minimal satu metode pembayaran');
+	});
+	it('metode online saja (tanpa transfer) diterima', () => {
+		expect(settingsSchema.safeParse({ ...ok, payTransfer: null, payEwallet: 'on' }).success).toBe(
+			true
+		);
+	});
 	it.each([
 		['ongkir negatif', { shippingCost: '-1' }],
 		['ongkir huruf', { shippingCost: 'abc' }],

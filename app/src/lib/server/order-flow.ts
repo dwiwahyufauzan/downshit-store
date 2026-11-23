@@ -4,8 +4,11 @@ import { db, transact, type Tx } from './db';
 import { NOW_ISO, orders, payments, shipments } from './db/schema';
 import { canTransition, type Status } from './order-status';
 import { OrderError, expireUnpaidOrders } from './orders';
+import { cancelTransaction } from './midtrans';
+import { reconcileGatewayPayments } from './gateway-payments';
 import { getSettings } from './settings';
 import { logActivity } from './activity';
+import { PAYMENT_NOTE_GATEWAY_REPLACED } from '#lib/constants';
 
 const notFound = () => new OrderError('Pesanan tidak ditemukan', 'not_found');
 
@@ -27,7 +30,14 @@ export function orderFail(e: unknown) {
 
 /* ---------- Konsumen: unggah bukti pembayaran ---------- */
 export async function submitPaymentProof(code: string, userId: number, proofUrl: string) {
-	return transact((tx) => {
+	if (!(await getSettings()).payTransfer) {
+		throw new OrderError(
+			'Transfer bank manual sedang tidak tersedia. Pilih metode pembayaran lain.'
+		);
+	}
+	// pembayaran online yang masih terbuka dibatalkan agar pelanggan tidak membayar dua kali
+	const gatewayToCancel: string[] = [];
+	await transact((tx) => {
 		const o = findByCode(tx, code);
 		if (!o || o.userId !== userId) throw notFound();
 		if (o.status !== 'menunggu_pembayaran') {
@@ -35,6 +45,15 @@ export async function submitPaymentProof(code: string, userId: number, proofUrl:
 		}
 		if (o.expiresAt && new Date(o.expiresAt).getTime() < Date.now()) {
 			throw new OrderError('Batas waktu pembayaran pesanan ini sudah lewat');
+		}
+
+		for (const p of tx.select().from(payments).where(eq(payments.orderId, o.id)).all()) {
+			if (!p.gatewayOrderId || p.status !== 'menunggu') continue;
+			tx.update(payments)
+				.set({ status: 'ditolak', note: PAYMENT_NOTE_GATEWAY_REPLACED })
+				.where(eq(payments.id, p.id))
+				.run();
+			gatewayToCancel.push(p.gatewayOrderId);
 		}
 
 		tx.insert(payments)
@@ -54,6 +73,7 @@ export async function submitPaymentProof(code: string, userId: number, proofUrl:
 			tx
 		);
 	});
+	await Promise.all(gatewayToCancel.map(cancelTransaction));
 }
 
 /* ---------- Admin: konfirmasi pembayaran ---------- */
@@ -66,7 +86,7 @@ export async function confirmPayment(code: string, adminId: number) {
 		}
 
 		const pay = latestPayment(tx, o.id);
-		if (!pay || pay.status !== 'menunggu' || !pay.proofUrl) {
+		if (!pay || pay.status !== 'menunggu' || !pay.proofUrl || pay.gatewayOrderId) {
 			throw new OrderError('Bukti transfer pembayaran belum diunggah atau tidak ditemukan');
 		}
 
@@ -267,7 +287,8 @@ let lastLightRun = 0;
 export async function runLightMaintenance() {
 	if (Date.now() - lastLightRun < 300_000) return; // maks 1x per 5 menit
 	lastLightRun = Date.now();
-	for (const r of await Promise.allSettled([expireUnpaidOrders(), autoCompleteShippedOrders()])) {
+	const jobs = [expireUnpaidOrders(), autoCompleteShippedOrders(), reconcileGatewayPayments()];
+	for (const r of await Promise.allSettled(jobs)) {
 		if (r.status === 'rejected') console.error('[maintenance error]:', r.reason);
 	}
 }

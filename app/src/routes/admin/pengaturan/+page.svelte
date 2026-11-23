@@ -2,15 +2,26 @@
 	import { enhance } from '$app/forms';
 	import Alert from '#lib/components/Alert.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
+	import { PAYMENT_METHODS, type PaymentMethod } from '#lib/constants';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 	let busy = $state(false);
 
+	// Saklar metode bayar; metode online baru tampil di checkout bila Midtrans terkonfigurasi
+	const PAY_FIELDS: Record<PaymentMethod, string> = {
+		transfer_bank: 'payTransfer',
+		ewallet: 'payEwallet',
+		qris: 'payQris',
+		va: 'payVa',
+		minimarket: 'payMinimarket'
+	};
+	const payMethods = Object.keys(PAYMENT_METHODS) as PaymentMethod[];
+
 	let s = $derived(
 		form?.values
-			? (form.values as Record<string, string | number>)
-			: (data.settings as unknown as Record<string, string | number>)
+			? (form.values as Record<string, string | number | boolean>)
+			: (data.settings as unknown as Record<string, string | number | boolean>)
 	);
 </script>
 
@@ -126,6 +137,53 @@
 					{/if}
 				</div>
 			</div>
+		</section>
+
+		<section class="panel space-y-4">
+			<h2 class="panel-title border-b border-line pb-3">Metode Pembayaran</h2>
+			<p class="text-sm text-smoke">
+				Pilih metode yang ditawarkan ke pelanggan saat checkout. Metode online (e-wallet, QRIS,
+				Virtual Account, minimarket) diproses lewat Midtrans dan terkonfirmasi otomatis.
+			</p>
+
+			{#if data.gateway.mode === 'simulator'}
+				<Alert
+					type="warning"
+					message="MODE SIMULASI aktif (PAYMENT_SIMULATOR=true): metode online memakai payment gateway tiruan mirip Midtrans, tanpa akun dan tanpa uang sungguhan. Untuk pembayaran asli, isi MIDTRANS_SERVER_KEY dan hapus PAYMENT_SIMULATOR."
+				/>
+			{:else if data.gateway.configured}
+				<p class="text-xs font-semibold text-ok">
+					Midtrans terhubung (mode {data.gateway.mode === 'production' ? 'Produksi' : 'Sandbox'}).
+				</p>
+			{:else}
+				<Alert
+					type="error"
+					message="Midtrans belum dikonfigurasi. Isi MIDTRANS_SERVER_KEY di file .env server lalu restart aplikasi agar metode online bisa dipakai (atau set PAYMENT_SIMULATOR=true untuk demo tanpa akun). Sementara itu hanya transfer bank yang tampil di checkout."
+				/>
+			{/if}
+
+			<div class="grid grid-cols-1 gap-px border border-line bg-line sm:grid-cols-2">
+				{#each payMethods as m (m)}
+					{@const field = PAY_FIELDS[m]}
+					<label class="flex items-start gap-3 bg-paper p-4 text-sm">
+						<input type="checkbox" name={field} class="mt-0.5" checked={!!s[field]} />
+						<span>
+							<span class="font-semibold">{PAYMENT_METHODS[m].label}</span>
+							<span class="hint !mt-0 block">{PAYMENT_METHODS[m].hint}</span>
+						</span>
+					</label>
+				{/each}
+			</div>
+			{#if form?.errors?.payTransfer}
+				<p class="field-error">{form.errors.payTransfer[0]}</p>
+			{/if}
+
+			<p class="hint">
+				URL notifikasi yang diisi di dashboard Midtrans (Settings → Configuration → Payment
+				Notification URL): <code class="font-mono"
+					>https://DOMAIN-ANDA/api/midtrans/notification</code
+				>
+			</p>
 		</section>
 
 		<section class="panel space-y-4">

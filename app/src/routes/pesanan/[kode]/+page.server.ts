@@ -19,6 +19,13 @@ import { messageToStore } from '#lib/utils/wa-messages';
 import { canCancel, type Status } from '#lib/server/order-status';
 import { cancelOrder } from '#lib/server/orders';
 import { completeOrder, orderFail, submitPaymentProof } from '#lib/server/order-flow';
+import {
+	getPaymentOptions,
+	startOnlinePayment,
+	syncPendingForOrder
+} from '#lib/server/gateway-payments';
+import { gatewayMode } from '#lib/server/midtrans';
+import { isGatewayMethod } from '#lib/constants';
 import { rateLimit } from '#lib/server/rate-limit';
 import { ReviewError, createReview, getOrderReviewables } from '#lib/server/reviews';
 import { deleteImage, saveImage } from '#lib/server/upload';
@@ -32,14 +39,24 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const user = requireRole(locals, 'konsumen');
 
 	// Kepemilikan: WHERE code = ? AND user_id = ? — pesanan orang lain = 404 (tidak bocorkan keberadaan)
-	const [order] = await db
-		.select()
-		.from(orders)
-		.where(and(eq(orders.code, params.kode), eq(orders.userId, user.id)))
-		.limit(1);
+	const findOrder = () =>
+		db
+			.select()
+			.from(orders)
+			.where(and(eq(orders.code, params.kode), eq(orders.userId, user.id)))
+			.limit(1);
+
+	let [order] = await findOrder();
 
 	if (!order) {
 		throw error(404, 'Pesanan tidak ditemukan');
+	}
+
+	// Pembayaran online yang masih menunggu dicek langsung ke Midtrans: status langsung benar saat
+	// pelanggan kembali dari halaman bayar, walau notifikasi belum/tidak sampai (mis. server lokal).
+	if (order.status === 'menunggu_pembayaran') {
+		await syncPendingForOrder(order.id);
+		[order] = await findOrder();
 	}
 
 	const [items, paymentHistory, [shipmentRow], settings] = await Promise.all([
@@ -82,6 +99,13 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 
 	const shipment = shipmentRow ?? null;
 
+	// Percobaan bayar online yang masih terbuka (halaman bayar / nomor VA / kode bayar)
+	const gatewayPayment =
+		order.status === 'menunggu_pembayaran'
+			? (paymentHistory.find((p) => p.gatewayOrderId && p.status === 'menunggu') ?? null)
+			: null;
+	const paymentOptions = await getPaymentOptions(settings);
+
 	// Status pembayaran "efektif" = baris terbaru; belum ada upload → belum_bayar (BR-20)
 	const payment = paymentHistory[0] ?? null;
 	const cancelledBy =
@@ -107,6 +131,9 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		reviewables: order.status === 'selesai' ? getOrderReviewables(db, order.id) : [],
 		items: enrichedItems,
 		payment,
+		gatewayPayment,
+		paymentOptions,
+		simulator: gatewayMode() === 'simulator',
 		paymentStatus: payment?.status ?? 'belum_bayar',
 		paymentHistory,
 		shipment,
@@ -116,6 +143,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		refund: waOrder.refund,
 		maxUploadMb: Number(MAX_UPLOAD_MB ?? 2),
 		justCreated: url.searchParams.get('baru') === '1',
+		// ?bayar=kembali (selesai di halaman Midtrans) | ?bayar=gagal (gagal membuka halaman bayar saat checkout)
+		payReturn: url.searchParams.get('bayar'),
 		// dihitung di server karena order-status.ts tidak boleh diimpor komponen
 		canCancel: canCancel('konsumen', order.status as Status),
 		canConfirmReceived: order.status === 'dikirim',
@@ -177,6 +206,24 @@ export const actions: Actions = {
 			success: true,
 			message: 'Bukti transfer berhasil diunggah! Menunggu verifikasi admin toko.'
 		};
+	},
+
+	bayarOnline: async ({ request, params, locals }) => {
+		const user = requireRole(locals, 'konsumen');
+		if (rateLimit(`payonline|${user.id}`, 10, 60_000)) {
+			return fail(429, { message: 'Terlalu sering. Coba lagi sebentar.' });
+		}
+
+		const method = String((await request.formData()).get('paymentMethod') ?? '');
+		if (!isGatewayMethod(method)) return fail(400, { message: 'Pilih metode pembayaran online' });
+
+		let redirectUrl: string;
+		try {
+			({ redirectUrl } = await startOnlinePayment(params.kode, user.id, method));
+		} catch (err) {
+			return orderFail(err);
+		}
+		throw redirect(303, redirectUrl);
 	},
 
 	batal: async ({ request, params, locals }) => {

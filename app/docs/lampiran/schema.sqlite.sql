@@ -127,12 +127,34 @@ CREATE UNIQUE INDEX `uq_orders_code` ON `orders` (`code`);
 CREATE INDEX `idx_orders_user` ON `orders` (`user_id`);
 CREATE INDEX `idx_orders_status` ON `orders` (`status`);
 CREATE INDEX `idx_orders_created` ON `orders` (`created_at`);
+CREATE TABLE `payment_simulations` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`gateway_order_id` text NOT NULL,
+	`token` text NOT NULL,
+	`amount` integer NOT NULL,
+	`method` text NOT NULL,
+	`channel` text,
+	`payment_code` text,
+	`status` text DEFAULT 'pending' NOT NULL,
+	`expires_at` text NOT NULL,
+	`created_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+	`updated_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL
+);
+
+CREATE UNIQUE INDEX `uq_sim_gateway_order` ON `payment_simulations` (`gateway_order_id`);
+CREATE UNIQUE INDEX `uq_sim_token` ON `payment_simulations` (`token`);
 CREATE TABLE `payments` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`order_id` integer NOT NULL,
 	`method` text DEFAULT 'transfer_bank' NOT NULL,
 	`amount` integer NOT NULL,
 	`proof_url` text,
+	`gateway_order_id` text,
+	`gateway_type` text,
+	`gateway_tx_id` text,
+	`payment_code` text,
+	`redirect_url` text,
+	`expires_at` text,
 	`status` text DEFAULT 'menunggu' NOT NULL,
 	`note` text,
 	`confirmed_by` integer,
@@ -144,6 +166,7 @@ CREATE TABLE `payments` (
 
 CREATE INDEX `idx_pay_order` ON `payments` (`order_id`);
 CREATE INDEX `idx_pay_status` ON `payments` (`status`);
+CREATE UNIQUE INDEX `uq_pay_gateway_order` ON `payments` (`gateway_order_id`);
 CREATE TABLE `product_images` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`product_id` integer NOT NULL,

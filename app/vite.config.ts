@@ -43,7 +43,8 @@ export default defineConfig(({ mode }) => {
 						'font-src': ['self'],
 						'frame-src': ['https://www.google.com'], // embed Google Maps di beranda
 						'connect-src': ['self', 'https:'], // izin connect untuk HLS video chunks streaming
-						'form-action': ['self'],
+						// Midtrans: setelah form checkout, server mengalihkan (303) ke halaman bayar Snap
+						'form-action': ['self', 'https://app.midtrans.com', 'https://app.sandbox.midtrans.com'],
 						'base-uri': ['self'],
 						'frame-ancestors': ['none'],
 						'object-src': ['none'],

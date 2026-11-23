@@ -22,7 +22,10 @@ vi.mock('$app/env/private', () => ({
 	SESSION_DAYS: '30',
 	UPLOAD_DIR: './tests/.tmp-uploads-admin',
 	MAX_UPLOAD_MB: '2',
-	CRON_SECRET: 'x'.repeat(32)
+	CRON_SECRET: 'x'.repeat(32),
+	MIDTRANS_SERVER_KEY: undefined,
+	MIDTRANS_IS_PRODUCTION: undefined,
+	PAYMENT_SIMULATOR: undefined
 }));
 
 import { rmSync } from 'node:fs';
@@ -406,10 +409,12 @@ describe('Pengaturan toko (BR-15, BR-23, TC-016)', () => {
 		lowStock: '8',
 		paymentDeadlineHours: '12',
 		maxUnpaidOrders: '2',
-		autoCompleteDays: '5'
+		autoCompleteDays: '5',
+		payTransfer: 'on',
+		payQris: 'on'
 	};
 
-	it('menyimpan SEMUA 10 kunci dan terbaca kembali', async () => {
+	it('menyimpan SEMUA 15 kunci dan terbaca kembali', async () => {
 		const parsed = settingsSchema.parse(valid);
 		await transact((tx) => setSettings(tx, parsed));
 		const rows = Object.fromEntries(
@@ -432,11 +437,16 @@ describe('Pengaturan toko (BR-15, BR-23, TC-016)', () => {
 			lowStock: 8,
 			paymentDeadlineHours: 12,
 			maxUnpaidOrders: 2,
-			autoCompleteDays: 5
+			autoCompleteDays: 5,
+			payTransfer: true,
+			payEwallet: false,
+			payQris: true,
+			payVa: false,
+			payMinimarket: false
 		});
 		// simpan ulang (upsert) tidak menggandakan baris
 		await transact((tx) => setSettings(tx, { ...parsed, shippingCost: 25000 }));
-		expect(db.select().from(settings).all()).toHaveLength(10);
+		expect(db.select().from(settings).all()).toHaveLength(15);
 		expect((await getSettings()).shippingCost).toBe(25000);
 	});
 

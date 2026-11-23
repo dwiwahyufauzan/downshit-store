@@ -75,6 +75,37 @@ const STEPS: Step[] = [
 		table: 'purchases',
 		column: 'cancel_note',
 		ddl: 'ALTER TABLE purchases ADD COLUMN cancel_note text'
+	},
+	// Pembayaran online (Midtrans)
+	{
+		table: 'payments',
+		column: 'gateway_order_id',
+		ddl: 'ALTER TABLE payments ADD COLUMN gateway_order_id text'
+	},
+	{
+		table: 'payments',
+		column: 'gateway_type',
+		ddl: 'ALTER TABLE payments ADD COLUMN gateway_type text'
+	},
+	{
+		table: 'payments',
+		column: 'gateway_tx_id',
+		ddl: 'ALTER TABLE payments ADD COLUMN gateway_tx_id text'
+	},
+	{
+		table: 'payments',
+		column: 'payment_code',
+		ddl: 'ALTER TABLE payments ADD COLUMN payment_code text'
+	},
+	{
+		table: 'payments',
+		column: 'redirect_url',
+		ddl: 'ALTER TABLE payments ADD COLUMN redirect_url text'
+	},
+	{
+		table: 'payments',
+		column: 'expires_at',
+		ddl: 'ALTER TABLE payments ADD COLUMN expires_at text'
 	}
 ];
 
@@ -142,6 +173,25 @@ const run = sqlite.transaction(() => {
 		CREATE INDEX IF NOT EXISTS idx_wishlist_user ON wishlists (user_id, created_at);`
 	);
 
+	// Tabel simulasi payment gateway (mode PAYMENT_SIMULATOR)
+	sqlite.exec(
+		`CREATE TABLE IF NOT EXISTS payment_simulations (
+			id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+			gateway_order_id text NOT NULL,
+			token text NOT NULL,
+			amount integer NOT NULL,
+			method text NOT NULL,
+			channel text,
+			payment_code text,
+			status text NOT NULL DEFAULT 'pending',
+			expires_at text NOT NULL,
+			created_at text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+			updated_at text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+		);
+		CREATE UNIQUE INDEX IF NOT EXISTS uq_sim_gateway_order ON payment_simulations (gateway_order_id);
+		CREATE UNIQUE INDEX IF NOT EXISTS uq_sim_token ON payment_simulations (token);`
+	);
+
 	for (const s of STEPS) {
 		if (hasColumn(s.table, s.column)) continue;
 		sqlite.exec(s.ddl);
@@ -149,15 +199,23 @@ const run = sqlite.transaction(() => {
 		applied++;
 	}
 
+	// Satu order_id Midtrans = satu baris pembayaran (NULL untuk transfer manual boleh banyak)
+	sqlite.exec(
+		'CREATE UNIQUE INDEX IF NOT EXISTS uq_pay_gateway_order ON payments (gateway_order_id)'
+	);
+
 	// Pesanan lama tanpa batas bayar: beri batas 24 jam dari pembuatan agar job kedaluwarsa tidak mengabaikannya
 	sqlite.exec(
 		`UPDATE orders SET expires_at = strftime('%Y-%m-%dT%H:%M:%fZ', created_at, '+24 hours')
 		 WHERE expires_at IS NULL AND status = 'menunggu_pembayaran'`
 	);
 
-	// BR-20: tidak ada baris pembayaran saat checkout. Buang baris 'menunggu' tanpa bukti (sisa checkout lama).
+	// BR-20: tidak ada baris pembayaran saat checkout. Buang baris 'menunggu' tanpa bukti (sisa checkout lama);
+	// baris pembayaran online (punya gateway_order_id) memang tanpa bukti, jangan dihapus.
 	const phantom = sqlite
-		.prepare(`DELETE FROM payments WHERE proof_url IS NULL AND status = 'menunggu'`)
+		.prepare(
+			`DELETE FROM payments WHERE proof_url IS NULL AND status = 'menunggu' AND gateway_order_id IS NULL`
+		)
 		.run().changes;
 	if (phantom > 0) console.log(`  - ${phantom} baris payments kosong (tanpa bukti) dihapus`);
 
