@@ -14,8 +14,10 @@ PORT="${PORT:-$(env_get PORT)}"; PORT="${PORT:-3000}"
 [ -n "$CRON_SECRET" ] || die "CRON_SECRET kosong (cek $ENV_FILE)"
 
 printf '[%s] ' "$(date '+%F %T')"
-curl -fsS -m 30 -X POST \
-  -H "Authorization: Bearer ${CRON_SECRET}" \
+# Rahasia dikirim lewat konfigurasi stdin (bukan argumen) agar tidak terlihat oleh user lain via `ps`.
+curl -fsS -m 30 -X POST --config - \
   -H "Content-Type: application/json" -d '{}' \
-  "http://127.0.0.1:${PORT}/internal/maintenance"
+  "http://127.0.0.1:${PORT}/internal/maintenance" <<CURLCFG
+header = "Authorization: Bearer ${CRON_SECRET}"
+CURLCFG
 echo

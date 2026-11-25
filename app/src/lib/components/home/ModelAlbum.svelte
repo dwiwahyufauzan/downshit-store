@@ -43,6 +43,21 @@
 			alt: 'Model memakai kaos merah dan jaket hitam',
 			cls: 'col-span-6 aspect-[3/2] md:col-span-4 md:aspect-[4/5]',
 			pos: 'object-[50%_25%]'
+		},
+		{
+			src: 'https://i.pinimg.com/1200x/b0/a1/ac/b0a1acc7e73cf74d3c5a7ab80177f4f7.jpg',
+			alt: 'Model memakai kaos oversized hitam',
+			cls: 'col-span-3 aspect-[3/4] md:col-span-4 md:aspect-[4/5]'
+		},
+		{
+			src: 'https://i.pinimg.com/1200x/b6/d5/ef/b6d5efb228a0a31c9055c4b7236b2659.jpg',
+			alt: 'Model streetwear lookbook',
+			cls: 'col-span-3 aspect-[3/4] md:col-span-4 md:aspect-[3/4] md:mt-8'
+		},
+		{
+			src: 'https://i.pinimg.com/1200x/b6/0d/d4/b60dd42a4cb57a2ae041575226097a36.jpg',
+			alt: 'Model memakai hoodie fleece abu-abu',
+			cls: 'col-span-6 aspect-[16/10] md:col-span-4 md:aspect-[4/5]'
 		}
 	];
 	const album = MODEL_PHOTOS;

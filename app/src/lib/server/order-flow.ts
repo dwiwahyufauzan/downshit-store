@@ -5,7 +5,7 @@ import { NOW_ISO, orders, payments, shipments } from './db/schema';
 import { canTransition, type Status } from './order-status';
 import { OrderError, expireUnpaidOrders } from './orders';
 import { cancelTransaction } from './midtrans';
-import { reconcileGatewayPayments } from './gateway-payments';
+import { enabledMethods, reconcileGatewayPayments } from './gateway-payments';
 import { getSettings } from './settings';
 import { logActivity } from './activity';
 import { PAYMENT_NOTE_GATEWAY_REPLACED } from '#lib/constants';
@@ -30,7 +30,7 @@ export function orderFail(e: unknown) {
 
 /* ---------- Konsumen: unggah bukti pembayaran ---------- */
 export async function submitPaymentProof(code: string, userId: number, proofUrl: string) {
-	if (!(await getSettings()).payTransfer) {
+	if (!enabledMethods(await getSettings()).includes('transfer_bank')) {
 		throw new OrderError(
 			'Transfer bank manual sedang tidak tersedia. Pilih metode pembayaran lain.'
 		);

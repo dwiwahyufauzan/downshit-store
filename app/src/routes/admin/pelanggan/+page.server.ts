@@ -1,9 +1,9 @@
 import { fail } from '@sveltejs/kit';
-import { and, count, desc, eq, like, or, sql } from 'drizzle-orm';
+import { and, count, desc, eq, or, sql } from 'drizzle-orm';
 import { db } from '#lib/server/db';
 import { orders, users } from '#lib/server/db/schema';
 import { requireRole } from '#lib/server/guards';
-import { escapeLike, idParam, pageParam } from '#lib/server/sql';
+import { contains, idParam, pageParam } from '#lib/server/sql';
 import { resetCustomerPassword, setCustomerActive } from '#lib/server/customer-admin';
 
 const PER_PAGE = 15;
@@ -15,13 +15,7 @@ export const load = async ({ url, locals }) => {
 
 	const whereConditions = and(
 		eq(users.role, 'konsumen'),
-		q
-			? or(
-					like(users.name, `%${escapeLike(q)}%`),
-					like(users.email, `%${escapeLike(q)}%`),
-					like(users.phone, `%${escapeLike(q)}%`)
-				)
-			: undefined
+		q ? or(contains(users.name, q), contains(users.email, q), contains(users.phone, q)) : undefined
 	);
 
 	const [totalCountRow] = await db.select({ count: count() }).from(users).where(whereConditions);

@@ -8,6 +8,7 @@ import {
 	destroyAllSessions,
 	hashPassword,
 	homeFor,
+	portalOf,
 	verifyPassword
 } from '#lib/server/auth';
 import { changePasswordSchema, profileSchema } from '#lib/schemas/auth';
@@ -118,7 +119,7 @@ export const actions: Actions = {
 
 		// Revoke semua sesi lama dan terbitkan sesi baru
 		await destroyAllSessions(sessionUser.id);
-		await createSession(sessionUser.id, cookies);
+		await createSession(sessionUser.id, cookies, portalOf(sessionUser.role));
 
 		await logActivity(
 			sessionUser.id,

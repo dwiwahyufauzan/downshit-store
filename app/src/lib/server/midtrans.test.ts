@@ -15,7 +15,8 @@ describe('classify: transaction_status Midtrans → hasil', () => {
 		['expire', undefined, 'failed'],
 		['failure', undefined, 'failed'],
 		['refund', undefined, 'refunded'],
-		['partial_refund', undefined, 'refunded'],
+		['partial_refund', undefined, 'partial_refund'],
+		['partial_chargeback', undefined, 'partial_refund'],
 		['chargeback', undefined, 'refunded'],
 		['status-aneh', undefined, 'pending']
 	])('%s (fraud: %s) → %s', (transaction_status, fraud_status, want) => {
@@ -83,5 +84,12 @@ describe('verifySignature tanpa Server Key', () => {
 				signature_key: 'x'
 			})
 		).toBe(false);
+	});
+});
+
+describe('verifySignature: signature_key bukan string', () => {
+	it('ditolak tanpa melempar error', () => {
+		expect(() => verifySignature({ order_id: 'A', signature_key: 123 as never })).not.toThrow();
+		expect(verifySignature({ order_id: 'A', signature_key: 123 as never })).toBe(false);
 	});
 });

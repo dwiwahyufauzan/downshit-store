@@ -1,9 +1,15 @@
 import { fail } from '@sveltejs/kit';
-import { and, asc, count, desc, eq, isNull, like, lte } from 'drizzle-orm';
+import { and, asc, count, desc, eq, isNull, lte } from 'drizzle-orm';
 import { db, transact } from '#lib/server/db';
-import { cartItems, categories, products, stockMovements } from '#lib/server/db/schema';
+import {
+	cartItems,
+	categories,
+	productImages,
+	products,
+	stockMovements
+} from '#lib/server/db/schema';
 import { requireRole } from '#lib/server/guards';
-import { escapeLike, idParam, pageParam } from '#lib/server/sql';
+import { contains, idParam, pageParam } from '#lib/server/sql';
 import { getSettings } from '#lib/server/settings';
 import { getSizesFor } from '#lib/server/sizes';
 import { productUsageIn } from '#lib/server/product-usage';
@@ -23,7 +29,7 @@ export const load = async ({ url, locals }) => {
 
 	const whereConditions = and(
 		isNull(products.deletedAt),
-		q ? like(products.name, `%${escapeLike(q)}%`) : undefined,
+		q ? contains(products.name, q) : undefined,
 		categoryId ? eq(products.categoryId, categoryId) : undefined,
 		lowOnly ? lte(products.stock, lowStock) : undefined
 	);
@@ -127,10 +133,22 @@ export const actions = {
 					`Produk dinonaktifkan (punya riwayat): ${prod.name}`,
 					tx
 				);
-				return { ok: true as const, mode: 'soft' as const, name: prod.name, imageUrl: null };
+				return {
+					ok: true as const,
+					mode: 'soft' as const,
+					name: prod.name,
+					imageUrls: [] as string[]
+				};
 			}
 
 			// Tanpa riwayat nyata: hapus permanen beserta mutasi "stok awal" otomatisnya
+			// Baris galeri ikut terhapus (cascade): catat dulu semua file-nya agar tidak jadi file yatim
+			const gallery = tx
+				.select({ url: productImages.imageUrl })
+				.from(productImages)
+				.where(eq(productImages.productId, id))
+				.all()
+				.map((r) => r.url);
 			tx.delete(stockMovements).where(eq(stockMovements.productId, id)).run();
 			tx.delete(products).where(eq(products.id, id)).run();
 			logActivity(
@@ -141,13 +159,18 @@ export const actions = {
 				`Produk dihapus permanen: ${prod.name}`,
 				tx
 			);
-			return { ok: true as const, mode: 'hard' as const, name: prod.name, imageUrl: prod.imageUrl };
+			return {
+				ok: true as const,
+				mode: 'hard' as const,
+				name: prod.name,
+				imageUrls: [...new Set([prod.imageUrl, ...gallery].filter((u): u is string => !!u))]
+			};
 		});
 
 		if (!result.ok) return fail(result.status, { message: result.error });
 
 		// File gambar (+ thumbnail) hanya dibuang untuk hapus permanen, setelah DB berhasil
-		if (result.imageUrl) await deleteImageIfUnused(result.imageUrl);
+		for (const u of result.imageUrls) await deleteImageIfUnused(u);
 
 		return {
 			success: true,

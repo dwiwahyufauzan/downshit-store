@@ -6,7 +6,7 @@ import { MAX_UPLOAD_MB, UPLOAD_DIR } from '$app/env/private';
 
 const MAX = Number(MAX_UPLOAD_MB ?? 2) * 1024 * 1024;
 const ROOT = path.resolve(UPLOAD_DIR ?? './uploads');
-const LIMIT_PIXELS = 40_000_000; // cegah "decompression bomb"
+const LIMIT_PIXELS = 25_000_000; // cegah "decompression bomb" (foto kamera 24 MP masih lolos)
 
 const FOLDERS = {
 	products: { max: 1200, thumb: 400 },
@@ -14,6 +14,21 @@ const FOLDERS = {
 	proofs: { max: 1600, thumb: 0 }
 } as const;
 type Folder = keyof typeof FOLDERS;
+
+// Dekode gambar memakan memori besar: batasi yang berjalan bersamaan agar lonjakan unggahan tak menghabiskan RAM
+const MAX_CONCURRENT_DECODES = 2;
+let activeDecodes = 0;
+const waiting: (() => void)[] = [];
+async function limited<T>(fn: () => Promise<T>): Promise<T> {
+	if (activeDecodes >= MAX_CONCURRENT_DECODES) await new Promise<void>((r) => waiting.push(r));
+	activeDecodes++;
+	try {
+		return await fn();
+	} finally {
+		activeDecodes--;
+		waiting.shift()?.();
+	}
+}
 
 /** Cek magic bytes sebelum diserahkan ke sharp (menolak file yang menyamar sebagai gambar). */
 function looksLikeImage(buf: Buffer): boolean {
@@ -56,19 +71,22 @@ export async function saveImage(file: File, folder: Folder): Promise<UploadResul
 
 	try {
 		// .rotate() menerapkan orientasi EXIF; metadata lain dibuang (sharp tidak menyalinnya secara default)
-		const img = sharp(buf, { limitInputPixels: LIMIT_PIXELS, failOn: 'error' }).rotate();
-		const main = await img
-			.clone()
-			.resize({ width: cfg.max, height: cfg.max, fit: 'inside', withoutEnlargement: true })
-			.webp({ quality: 80 })
-			.toBuffer();
-		const thumb = cfg.thumb
-			? await img
-					.clone()
-					.resize({ width: cfg.thumb, height: cfg.thumb, fit: 'cover' })
-					.webp({ quality: 75 })
-					.toBuffer()
-			: null;
+		const { main, thumb } = await limited(async () => {
+			const img = sharp(buf, { limitInputPixels: LIMIT_PIXELS, failOn: 'error' }).rotate();
+			const main = await img
+				.clone()
+				.resize({ width: cfg.max, height: cfg.max, fit: 'inside', withoutEnlargement: true })
+				.webp({ quality: 80 })
+				.toBuffer();
+			const thumb = cfg.thumb
+				? await img
+						.clone()
+						.resize({ width: cfg.thumb, height: cfg.thumb, fit: 'cover' })
+						.webp({ quality: 75 })
+						.toBuffer()
+				: null;
+			return { main, thumb };
+		});
 
 		await mkdir(dir, { recursive: true });
 		await writeFile(mainPath, main);

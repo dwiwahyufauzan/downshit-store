@@ -104,6 +104,8 @@ export const paymentMethodLabel = (m: string): string =>
 export const PAYMENT_NOTE_GATEWAY_REPLACED = 'Diganti dengan metode pembayaran lain';
 export const PAYMENT_NOTE_GATEWAY_EXPIRED = 'Waktu pembayaran online habis';
 export const PAYMENT_NOTE_GATEWAY_FAILED = 'Pembayaran online gagal atau dibatalkan';
+export const PAYMENT_NOTE_PARTIAL_REFUND =
+	'Refund/chargeback SEBAGIAN di Midtrans: tinjau pesanan ini secara manual';
 export const PAYMENT_NOTE_LATE_REFUND =
 	'Dibayar setelah pesanan dibatalkan. Dana perlu dikembalikan manual lewat dashboard Midtrans';
 export const PAYMENT_NOTE_DOUBLE_REFUND =

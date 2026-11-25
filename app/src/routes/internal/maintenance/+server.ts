@@ -31,11 +31,13 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 	};
 
-	return json({
+	const result = {
 		expiredOrders: await run('expireUnpaidOrders', expireUnpaidOrders),
 		completedOrders: await run('autoCompleteShippedOrders', autoCompleteShippedOrders),
 		reconciledGatewayPayments: await run('reconcileGatewayPayments', reconcileGatewayPayments),
 		purgedSessions: await run('purgeExpiredSessions', purgeExpiredSessions),
 		purgedLoginAttempts: await run('purgeOld', purgeOld)
-	});
+	};
+	// Ada job yang gagal (-1) → 500 agar cron/healthcheck/monitor bisa mendeteksinya
+	return json(result, { status: Object.values(result).includes(-1) ? 500 : 200 });
 };

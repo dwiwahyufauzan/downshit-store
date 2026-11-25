@@ -22,6 +22,13 @@
 	// Pilihan ukuran per komponen ber-ukuran: productId → label
 	let picks = $state<Record<number, string>>({});
 
+	// Pindah paket: jumlah & pilihan ukuran paket sebelumnya tidak boleh terbawa
+	$effect(() => {
+		void data.bundle.id;
+		qty = 1;
+		picks = {};
+	});
+
 	const sizedComps = $derived(data.components.filter((c) => c.sizes.length > 0));
 	const allPicked = $derived(sizedComps.every((c) => picks[c.productId]));
 	const encoded = $derived(

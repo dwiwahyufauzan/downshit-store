@@ -61,8 +61,13 @@
 
 	let busy = $state(false);
 
-	// Gagal (validasi/server): buka lagi dialog dengan isian terakhir supaya pesan galat terlihat
+	// Gagal (validasi/server): buka lagi dialog dengan isian terakhir supaya pesan galat terlihat.
+	// Tiap objek `form` hanya diproses sekali: efek ini juga berjalan ulang saat data.overview berubah,
+	// dan form gagal yang basi tidak boleh membuka dialog lagi.
+	let handledForm: unknown;
 	$effect(() => {
+		if (form === handledForm) return;
+		handledForm = form;
 		const v = form?.values as
 			{ kind?: string; id?: string; size?: string; newStock?: string; note?: string } | undefined;
 		if (form && !form.success && v?.kind && v.id) {

@@ -7,8 +7,27 @@ import { db } from './db';
 import { sessions, users } from './db/schema';
 import type { SessionUser } from '../../app';
 
+/**
+ * Dua cookie sesi TERPISAH agar login pelanggan dan staf di peramban yang sama (mis. dua window)
+ * tidak saling menimpa: pelanggan → `dws_session`, staf (admin/owner) → `dws_staff_session`.
+ */
+export type Portal = 'customer' | 'staff';
 export const SESSION_COOKIE = 'dws_session';
+export const STAFF_SESSION_COOKIE = 'dws_staff_session';
+export const cookieNameOf = (portal: Portal) =>
+	portal === 'staff' ? STAFF_SESSION_COOKIE : SESSION_COOKIE;
+
+/** Pintu masuk yang benar untuk sebuah role. */
+export const portalOf = (role: 'owner' | 'admin' | 'konsumen'): Portal =>
+	role === 'konsumen' ? 'customer' : 'staff';
+
+/** Area staf memakai cookie staf; seluruh halaman lain memakai cookie pelanggan. */
+const STAFF_PATH = /^\/(admin|owner|staff)(\/|$)/;
+export const portalOfPath = (path: string): Portal =>
+	STAFF_PATH.test(path) ? 'staff' : 'customer';
 const getDays = () => Number(SESSION_DAYS ?? 30);
+/** Sesi staf (admin/owner) jauh lebih pendek daripada pelanggan: akun berhak akses besar & tanpa idle timeout. */
+const STAFF_SESSION_HOURS = 12;
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 
@@ -25,9 +44,10 @@ export async function verifyDummy(p: string): Promise<false> {
 	return false;
 }
 
-export async function createSession(userId: number, cookies: Cookies) {
+export async function createSession(userId: number, cookies: Cookies, portal: Portal = 'customer') {
 	const token = randomBytes(32).toString('base64url');
-	const expiresAt = new Date(Date.now() + getDays() * 86_400_000).toISOString();
+	const lifetimeMs = portal === 'staff' ? STAFF_SESSION_HOURS * 3_600_000 : getDays() * 86_400_000;
+	const expiresAt = new Date(Date.now() + lifetimeMs).toISOString();
 
 	await db.insert(sessions).values({
 		id: sha256(token),
@@ -35,7 +55,7 @@ export async function createSession(userId: number, cookies: Cookies) {
 		expiresAt
 	});
 
-	cookies.set(SESSION_COOKIE, token, {
+	cookies.set(cookieNameOf(portal), token, {
 		path: '/',
 		httpOnly: true,
 		sameSite: 'lax',
@@ -68,9 +88,9 @@ export async function validateSession(token: string): Promise<SessionUser | null
 	return user as SessionUser;
 }
 
-export async function destroySession(token: string, cookies: Cookies) {
+export async function destroySession(token: string, cookies: Cookies, portal: Portal = 'customer') {
 	await db.delete(sessions).where(eq(sessions.id, sha256(token)));
-	cookies.delete(SESSION_COOKIE, { path: '/' });
+	cookies.delete(cookieNameOf(portal), { path: '/' });
 }
 
 export async function destroyAllSessions(userId: number) {

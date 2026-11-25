@@ -10,13 +10,22 @@ import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { db } from '#lib/server/db';
 import { users } from '#lib/server/db/schema';
-import { createSession, homeFor, verifyDummy, verifyPassword } from '#lib/server/auth';
+import {
+	createSession,
+	cookieNameOf,
+	destroySession,
+	homeFor,
+	portalOf,
+	verifyDummy,
+	verifyPassword,
+	type Portal
+} from '#lib/server/auth';
 import { safeNext } from '#lib/server/redirect';
 import { loginSchema } from '#lib/schemas/auth';
 import { clearFailures, clientIp, recordFailure, tooManyAttempts } from '#lib/server/rate-limit';
 import { logActivity } from '#lib/server/activity';
 
-export type Portal = 'customer' | 'staff';
+export type { Portal };
 type Role = 'owner' | 'admin' | 'konsumen';
 
 export const LOGIN_PATH: Record<Portal, string> = {
@@ -24,8 +33,11 @@ export const LOGIN_PATH: Record<Portal, string> = {
 	staff: '/staff/login'
 };
 
-/** Pintu masuk yang benar untuk sebuah role. */
-export const portalOf = (role: Role): Portal => (role === 'konsumen' ? 'customer' : 'staff');
+export { portalOf };
+
+/** Halaman profil per role: staf punya halaman sendiri di dalam area admin/owner (tema & cookie staf). */
+export const profilePathFor = (role: Role) =>
+	role === 'admin' ? '/admin/profil' : role === 'owner' ? '/owner/profil' : '/profil';
 
 /** Halaman login tempat pengguna dengan role ini seharusnya masuk (dipakai redirect & logout). */
 export const loginPathFor = (role: Role) => LOGIN_PATH[portalOf(role)];
@@ -96,13 +108,25 @@ export async function performLogin(
 	}
 
 	await clearFailures(rateLimitKey);
-	await createSession(user.id, cookies);
+	await createSession(user.id, cookies, portal);
 	logActivity(user.id, 'auth.login', 'user', user.id, `${user.name} berhasil login`);
 
 	// BR-24: password sementara wajib diganti dulu
-	if (user.mustChangePassword) redirect(303, '/profil?wajib=1');
+	if (user.mustChangePassword) redirect(303, profilePathFor(user.role) + '?wajib=1');
 
 	const next = url.searchParams.get('next');
 	const allowedNext = portal === 'staff' && next && !STAFF_NEXT.test(next) ? null : next;
 	redirect(303, safeNext(allowedNext, homeFor(user.role)));
+}
+
+/** Logout bersama: hanya menghapus sesi milik portal yang bersangkutan, sesi portal lain tetap utuh. */
+export async function performLogout(
+	event: Pick<RequestEvent, 'cookies' | 'locals'>,
+	portal: Portal
+): Promise<never> {
+	const { cookies, locals } = event;
+	if (locals.sessionId) await destroySession(locals.sessionId, cookies, portal);
+	// Sesi kedaluwarsa/akun nonaktif: sessionId null, cookie basi tetap harus dibersihkan
+	cookies.delete(cookieNameOf(portal), { path: '/' });
+	redirect(303, LOGIN_PATH[portal]);
 }

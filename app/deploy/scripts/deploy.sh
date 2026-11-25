@@ -34,7 +34,8 @@ if [ -n "$SRC_DIR" ]; then
   need rsync rsync
   mkdir -p "$REL"
   rsync -a --exclude node_modules --exclude .env --exclude build --exclude .svelte-kit \
-        --exclude '*.db' --exclude '*.db-wal' --exclude '*.db-shm' --exclude 'tests/.tmp*' "$SRC_DIR"/ "$REL"/
+        --exclude '*.db' --exclude '*.db-wal' --exclude '*.db-shm' --exclude 'tests/.tmp*' \
+        --exclude uploads --exclude cloudflared "$SRC_DIR"/ "$REL"/
 else
   need git git
   git clone --depth 1 -b "$BRANCH" "$REPO" "$REL.src"
@@ -63,7 +64,7 @@ else
   npx drizzle-kit export --sql | sqlite3 "$DB_FILE"
   sqlite3 "$DB_FILE" 'PRAGMA journal_mode=WAL;' > /dev/null
   chmod 600 "$DB_FILE"
-  log "LANGKAH BERIKUTNYA (sekali): seed akun owner/admin - lihat docs/deployment.md bagian Seed produksi"
+  log "LANGKAH BERIKUTNYA (sekali): seed akun owner/admin: SEED_OWNER_EMAIL, SEED_ADMIN_EMAIL, SEED_DEFAULT_PASSWORD (>= 12 karakter), NODE_ENV=production, SEED_ALLOW_PROD=true npm run db:seed (lihat deploy/env.production.example)"
 fi
 
 # 4) buang devDependencies (modul native tetap). tsx tetap ada (dependencies); drizzle-kit hilang.

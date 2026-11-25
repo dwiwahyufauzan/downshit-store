@@ -54,12 +54,36 @@
 			title: 'Jaket & celana',
 			href: '/produk?kategori=celana',
 			cta: 'Lihat celana'
+		},
+		{
+			src: 'https://i.pinimg.com/1200x/46/3a/e6/463ae67e403f7047702f5acd84ea6a88.jpg',
+			alt: 'Downshit Graphic Series - Streetwear Raw Culture',
+			tag: 'Graphic Series',
+			title: 'Kaos grafis',
+			href: '/produk?kategori=kaos',
+			cta: 'Lihat koleksi'
+		},
+		{
+			src: 'https://i.pinimg.com/1200x/2a/94/a6/2a94a6fe903d096df267bef684e0f4bd.jpg',
+			alt: 'Downshit Monokrom Edition - Heavy Cotton Apparel',
+			tag: 'Monokrom Edition',
+			title: 'Koleksi monokrom',
+			href: '/produk',
+			cta: 'Jelajahi'
+		},
+		{
+			src: 'https://i.pinimg.com/1200x/3e/74/75/3e7475870effd8fbbe6efd49e9029428.jpg',
+			alt: 'Downshit Winter & Heavyweight Street Style',
+			tag: 'Heavy Fleece',
+			title: 'Jaket & hoodie',
+			href: '/produk?kategori=hoodie',
+			cta: 'Lihat produk'
 		}
 	];
 
 	/* ---------- Hero Train (Gerbong Kereta) ---------- */
-	/** Kecepatan putaran kereta hero (dalam detik). 42 detik = sangat halus, tenang, & tidak terlalu cepat */
-	const TRAIN_SPEED_SECONDS = 42;
+	/** Kecepatan putaran kereta hero (dalam detik). 63 detik untuk 9 gerbong = sangat halus, tenang, & konsisten */
+	const TRAIN_SPEED_SECONDS = 63;
 </script>
 
 <!-- Hero: Gerbong Kereta Berjalan Halus (Continuous Train Conveyor) -->

@@ -47,7 +47,8 @@ import { POST as webhook } from '../../routes/api/midtrans/notification/+server'
 import {
 	PAYMENT_NOTE_GATEWAY_EXPIRED,
 	PAYMENT_NOTE_GATEWAY_REPLACED,
-	PAYMENT_NOTE_LATE_REFUND
+	PAYMENT_NOTE_LATE_REFUND,
+	PAYMENT_NOTE_PARTIAL_REFUND
 } from '#lib/constants';
 import {
 	adminId,
@@ -71,7 +72,7 @@ const sign = (id: string, code: string, gross: string) =>
 /* ---------- Midtrans palsu ---------- */
 let calls: { method: string; url: string; body?: Record<string, unknown> }[] = [];
 let remote = new Map<string, MidtransStatus | 'down'>();
-let snapFails = false;
+let snapFails: boolean | 'network' = false;
 
 const fakeFetch = async (url: string | URL, init?: RequestInit) => {
 	const u = String(url);
@@ -82,6 +83,7 @@ const fakeFetch = async (url: string | URL, init?: RequestInit) => {
 		new Response(JSON.stringify(json), { status, headers: { 'content-type': 'application/json' } });
 
 	if (u.includes('/snap/v1/transactions')) {
+		if (snapFails === 'network') throw new TypeError('fetch failed'); // timeout: hasil di Midtrans tidak pasti
 		if (snapFails) return reply(500, { error_messages: ['boom'] });
 		const t = `tok-${calls.length}`;
 		return reply(201, {
@@ -254,6 +256,42 @@ describe('mulai pembayaran online', () => {
 		expect(r.ok === false && r.error.message).toMatch(/Pembayaran online sedang bermasalah/);
 		expect(paysOf(orderId)).toHaveLength(0);
 		expect(orderOf(orderId).status).toBe('menunggu_pembayaran');
+	});
+
+	it('timeout saat membuat transaksi → baris disimpan (ditolak) agar order_id tidak dipakai ulang', async () => {
+		await enable('ewallet');
+		const { orderId, code } = await newOrder();
+		snapFails = 'network';
+		const r1 = await catchResult(() => startOnlinePayment(code, buyerId, 'ewallet'));
+		expect(r1.ok).toBe(false);
+		expect(paysOf(orderId).map((p) => [p.gatewayOrderId, p.status])).toEqual([
+			[`${code}-1`, 'ditolak']
+		]);
+		expect(cancelsOf().some((u) => u.includes(`${code}-1`))).toBe(true);
+
+		snapFails = false;
+		await startOnlinePayment(code, buyerId, 'ewallet');
+		const ids = paysOf(orderId).map((p) => p.gatewayOrderId);
+		expect(ids).toContain(`${code}-2`); // bukan -1 lagi (Midtrans menolak order_id kembar)
+	});
+
+	it('klik ganda: percobaan yang baru dibuat & belum punya halaman bayar tidak ditimpa', async () => {
+		await enable('ewallet');
+		const { orderId, code } = await newOrder();
+		db.insert(payments)
+			.values({
+				orderId,
+				method: 'ewallet',
+				amount: 115_000,
+				status: 'menunggu',
+				gatewayOrderId: `${code}-1`
+			})
+			.run();
+		const r = await catchResult(() => startOnlinePayment(code, buyerId, 'ewallet'));
+		expect(r.ok === false && r.error.message).toMatch(/sedang disiapkan/);
+		expect(paysOf(orderId)).toHaveLength(1);
+		expect(paysOf(orderId)[0].status).toBe('menunggu');
+		expect(calls).toHaveLength(0);
 	});
 
 	it('pesanan orang lain → tidak ditemukan; status bukan menunggu_pembayaran → ditolak', async () => {
@@ -430,11 +468,52 @@ describe('benturan dengan transfer manual', () => {
 		expect(orderOf(orderId).status).toBe('menunggu_konfirmasi');
 	});
 
-	it('transfer manual dimatikan → unggah bukti ditolak', async () => {
+	it('refund SEBAGIAN dari Midtrans: pembayaran & pesanan tidak berubah, hanya ditandai + log (sekali)', async () => {
+		await enable('ewallet');
+		const { orderId, code } = await newOrder();
+		await startOnlinePayment(code, buyerId, 'ewallet');
+		await applyGatewayStatus(status(`${code}-1`));
+		const partial = status(`${code}-1`, { transaction_status: 'partial_refund' });
+		expect(await applyGatewayStatus(partial)).toBe('applied');
+		expect(await applyGatewayStatus(partial)).toBe('ignored'); // notifikasi berulang tidak menggandakan log
+		expect(paysOf(orderId)[0]).toMatchObject({
+			status: 'dikonfirmasi',
+			note: PAYMENT_NOTE_PARTIAL_REFUND
+		});
+		expect(orderOf(orderId).status).toBe('diproses');
+		expect(logsOf(orderId).filter((l) => l.action === 'payment.partial_refund')).toHaveLength(1);
+	});
+
+	it('percobaan lama yang telat lunas setelah pembayaran utama di-refund: status pesanan TIDAK mundur', async () => {
+		await enable('ewallet', 'qris');
+		const { orderId, code } = await newOrder();
+		await startOnlinePayment(code, buyerId, 'ewallet'); // -1
+		await startOnlinePayment(code, buyerId, 'qris'); // -2 menggantikan -1
+		await applyGatewayStatus(status(`${code}-2`)); // lunas → diproses
+		await applyGatewayStatus(status(`${code}-2`, { transaction_status: 'refund' })); // refund penuh
+		expect(orderOf(orderId).status).toBe('diproses');
+
+		await applyGatewayStatus(status(`${code}-1`)); // -1 ternyata lunas juga, telat
+		expect(orderOf(orderId).status).toBe('diproses');
+		const late = paysOf(orderId).find((p) => p.gatewayOrderId === `${code}-1`)!;
+		expect(late.status).toBe('dikembalikan');
+		expect(logsOf(orderId).some((l) => l.action === 'payment.refund_needed')).toBe(true);
+	});
+
+	it('transfer manual dimatikan (ada metode online lain) → unggah bukti ditolak', async () => {
+		await enable('ewallet');
 		await setSetting('pay_transfer_enabled', 'false');
 		const { code } = await newOrder();
 		const r = await catchResult(() => submitPaymentProof(code, buyerId, '/uploads/proofs/a.png'));
 		expect(r.ok === false && r.error.message).toMatch(/Transfer bank manual/);
+	});
+
+	it('tidak ada metode aktif sama sekali → transfer jadi cadangan di checkout DAN di unggah bukti (konsisten)', async () => {
+		await setSetting('pay_transfer_enabled', 'false');
+		expect(enabledMethods(await getSettings())).toEqual(['transfer_bank']);
+		const { code } = await newOrder();
+		const r = await catchResult(() => submitPaymentProof(code, buyerId, '/uploads/proofs/a.png'));
+		expect(r.ok).toBe(true);
 	});
 
 	it('admin tidak bisa "mengonfirmasi" pembayaran online secara manual', async () => {
@@ -502,6 +581,43 @@ describe('sinkronisasi tanpa notifikasi', () => {
 
 		expect(await expireUnpaidOrders()).toBe(0);
 		expect(orderOf(orderId).status).toBe('diproses');
+	});
+
+	it('kedaluwarsa otomatis ditunda bila Midtrans gagal dicek (bisa jadi sudah lunas), dibatalkan setelah pulih', async () => {
+		await enable('ewallet');
+		const { orderId, code } = await newOrder();
+		await startOnlinePayment(code, buyerId, 'ewallet');
+		expireNow(orderId);
+		remote.set(`${code}-1`, 'down'); // Status API 503 saat cron berjalan
+
+		expect(await expireUnpaidOrders()).toBe(0);
+		expect(orderOf(orderId).status).toBe('menunggu_pembayaran');
+
+		remote.set(
+			`${code}-1`,
+			status(`${code}-1`, { transaction_status: 'pending', status_code: '201' })
+		);
+		expect(await expireUnpaidOrders()).toBe(1);
+		expect(orderOf(orderId).status).toBe('dibatalkan');
+	});
+
+	it('webhook: body bukan objek / signature_key bukan string → 4xx, bukan 500', async () => {
+		const post = (body: unknown) =>
+			catchResult(() =>
+				webhook({
+					request: new Request('http://localhost/api/midtrans/notification', {
+						method: 'POST',
+						headers: { 'content-type': 'application/json' },
+						body: JSON.stringify(body)
+					})
+				} as never)
+			);
+		for (const body of [null, 42, 'x', [], { order_id: 123 }]) {
+			const r = await post(body);
+			expect(!r.ok && r.error.status, JSON.stringify(body)).toBe(400);
+		}
+		const r = await post({ order_id: 'A-1', signature_key: 12345 });
+		expect(!r.ok && r.error.status).toBe(403);
 	});
 
 	it('kedaluwarsa otomatis: yang benar-benar belum dibayar dibatalkan + transaksi Midtrans dibatalkan', async () => {

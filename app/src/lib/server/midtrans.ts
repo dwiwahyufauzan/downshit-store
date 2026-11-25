@@ -11,7 +11,14 @@ import { PAYMENT_METHODS, type GatewayMethod } from '#lib/constants';
 import { createSimTransaction, getSimStatus, isSimulator, simCancel } from './payment-simulator';
 
 export class GatewayError extends Error {
-	constructor(message: string) {
+	/**
+	 * true = tidak pasti apakah Midtrans sempat memproses permintaan (timeout/jaringan/balasan rusak).
+	 * Pada pembuatan transaksi, order_id yang ambigu tidak boleh dipakai ulang.
+	 */
+	constructor(
+		message: string,
+		readonly ambiguous = false
+	) {
 		super(message);
 		this.name = 'GatewayError';
 	}
@@ -51,14 +58,14 @@ async function call<T>(
 			signal: AbortSignal.timeout(timeoutMs)
 		});
 	} catch (e) {
-		throw new GatewayError(`Tidak dapat menghubungi Midtrans: ${(e as Error).message}`);
+		throw new GatewayError(`Tidak dapat menghubungi Midtrans: ${(e as Error).message}`, true);
 	}
 	const text = await res.text();
 	let json: unknown;
 	try {
 		json = text ? JSON.parse(text) : {};
 	} catch {
-		throw new GatewayError(`Balasan Midtrans tidak valid (HTTP ${res.status})`);
+		throw new GatewayError(`Balasan Midtrans tidak valid (HTTP ${res.status})`, true);
 	}
 	if (!res.ok) {
 		const j = json as { error_messages?: string[]; status_message?: string };
@@ -163,7 +170,7 @@ const sha512 = (s: string) => createHash('sha512').update(s).digest('hex');
 
 /** signature_key = SHA512(order_id + status_code + gross_amount + ServerKey) */
 export function verifySignature(n: Partial<MidtransStatus>): boolean {
-	if (!MIDTRANS_SERVER_KEY || !n.signature_key) return false;
+	if (!MIDTRANS_SERVER_KEY || typeof n.signature_key !== 'string' || !n.signature_key) return false;
 	const expected = sha512(
 		`${n.order_id ?? ''}${n.status_code ?? ''}${n.gross_amount ?? ''}${MIDTRANS_SERVER_KEY}`
 	);
@@ -172,7 +179,7 @@ export function verifySignature(n: Partial<MidtransStatus>): boolean {
 	return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export type GatewayOutcome = 'paid' | 'pending' | 'failed' | 'refunded';
+export type GatewayOutcome = 'paid' | 'pending' | 'failed' | 'refunded' | 'partial_refund';
 
 /** Peta transaction_status Midtrans → hasil yang dipahami toko. */
 export function classify(
@@ -191,10 +198,11 @@ export function classify(
 		case 'failure':
 			return 'failed';
 		case 'refund':
-		case 'partial_refund':
 		case 'chargeback':
-		case 'partial_chargeback':
 			return 'refunded';
+		case 'partial_refund':
+		case 'partial_chargeback':
+			return 'partial_refund'; // sebagian saja: pesanan jangan dianggap dikembalikan penuh
 		default:
 			return 'pending'; // pending, authorize, …
 	}

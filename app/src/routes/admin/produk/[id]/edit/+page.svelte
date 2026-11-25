@@ -21,6 +21,9 @@
 		customPrimaryUrl ?? p.imageUrl ?? data.images[0]?.imageUrl ?? null
 	);
 	let newFilesList = $state<{ file: File; url: string }[]>([]);
+
+	// Foto utama yang dipilih dari foto BARU (blob:) dikirim sebagai urutannya, karena URL-nya baru ada di server
+	const primaryNewIndex = $derived(newFilesList.findIndex((f) => f.url === primaryImageUrl));
 	let activePreview = $state<string | null>(null);
 	let fileInput = $state<HTMLInputElement | null>(null);
 	let busy = $state(false);
@@ -79,11 +82,11 @@
 
 	function removeNewFile(index: number, e?: Event) {
 		e?.stopPropagation();
-		URL.revokeObjectURL(newFilesList[index].url);
+		const removedUrl = newFilesList[index].url;
+		URL.revokeObjectURL(removedUrl);
 		newFilesList = newFilesList.filter((_, i) => i !== index);
-		if (activePreview === newFilesList[index]?.url) {
-			activePreview = null;
-		}
+		if (activePreview === removedUrl) activePreview = null;
+		if (customPrimaryUrl === removedUrl) customPrimaryUrl = null;
 		syncInput();
 	}
 
@@ -274,7 +277,16 @@
 				{#each deletedImageIds as delId (delId)}
 					<input type="hidden" name="deleteImageIds" value={delId} />
 				{/each}
-				<input type="hidden" name="primaryImageUrl" value={primaryImageUrl ?? ''} />
+				<input
+					type="hidden"
+					name="primaryImageUrl"
+					value={primaryNewIndex >= 0 ? '' : (primaryImageUrl ?? '')}
+				/>
+				<input
+					type="hidden"
+					name="primaryNewIndex"
+					value={primaryNewIndex >= 0 ? primaryNewIndex : ''}
+				/>
 
 				<div class="panel space-y-4">
 					<div class="flex items-center justify-between">

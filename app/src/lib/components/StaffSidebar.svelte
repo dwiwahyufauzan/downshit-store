@@ -11,6 +11,7 @@
 	import Settings from '@lucide/svelte/icons/settings';
 	import TrendingUp from '@lucide/svelte/icons/trending-up';
 	import Activity from '@lucide/svelte/icons/activity';
+	import User from '@lucide/svelte/icons/user';
 
 	type Item = { label: string; href: string; badge?: number; exact?: boolean };
 	let { title = 'Portal', items = [] }: { title?: string; items?: Item[] } = $props();
@@ -100,6 +101,13 @@
 						/>
 					{:else if i.href.includes('pengaturan')}
 						<Settings
+							size={16}
+							class="shrink-0 transition-colors {active
+								? 'text-paper'
+								: 'text-smoke group-hover:text-ink'}"
+						/>
+					{:else if i.href.endsWith('/profil')}
+						<User
 							size={16}
 							class="shrink-0 transition-colors {active
 								? 'text-paper'

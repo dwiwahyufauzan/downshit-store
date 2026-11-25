@@ -16,6 +16,8 @@ RestartSec=3
 # hardening ringan. SQLite butuh menulis berkas .db, -wal, -shm DAN membuat berkas baru di folder data,
 # jadi seluruh /srv/downshit/shared harus ReadWrite (data/, uploads/, backups/).
 NoNewPrivileges=true
+# berkas baru (bukti bayar, database) tidak terbaca user lokal lain: 0640 / 0750
+UMask=0027
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true

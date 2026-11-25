@@ -1,4 +1,13 @@
+import { sql, type AnyColumn, type SQL } from 'drizzle-orm';
+
 export const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => '\\' + c);
+
+/**
+ * `kolom LIKE '%q%'` yang benar-benar literal: SQLite tidak punya escape bawaan, jadi `ESCAPE '\'`
+ * wajib ada agar pencarian "50%" atau "a_b" tidak dianggap wildcard (atau tidak pernah cocok).
+ */
+export const contains = (col: AnyColumn, q: string): SQL =>
+	sql`${col} LIKE ${`%${escapeLike(q)}%`} ESCAPE '\\'`;
 
 /** ?page=… → bilangan bulat 1…100000 */
 export const pageParam = (url: URL) =>

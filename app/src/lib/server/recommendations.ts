@@ -142,7 +142,8 @@ export function getTopRated(
 	return db
 		.all<Row>(
 			sql`${SELECT}${notIn(excludeIds)} AND COALESCE(r.n, 0) >= ${minReviews}
-			ORDER BY (r.n * r.avg + 5 * COALESCE((SELECT AVG(rating) FROM reviews WHERE is_visible = 1), 4)) / (r.n + 5) DESC,
+			-- prior sama dengan ratingScoreOf (4.0) agar rak "Rating tertinggi" & ?urut=rating tak berbeda urutan
+			ORDER BY (r.n * r.avg + 5 * 4.0) / (r.n + 5) DESC,
 			         r.n DESC, p.id DESC
 			LIMIT ${limit}`
 		)

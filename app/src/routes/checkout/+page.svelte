@@ -210,7 +210,7 @@
 			<ul class="mt-5 max-h-72 divide-y divide-line overflow-y-auto border-y border-line">
 				{#each data.cart.items as item (item.id)}
 					<li class="flex items-center gap-3 py-3">
-						<div class="product-media w-12 shrink-0">
+						<div class="product-media !aspect-square w-12 shrink-0 [&_img]:!object-contain">
 							{#if item.image}
 								<img src={thumbOf(item.image)} alt="" />
 							{/if}

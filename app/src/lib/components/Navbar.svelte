@@ -33,6 +33,9 @@
 	let innerWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1024);
 	const isMobile = $derived(innerWidth < 768);
 
+	const profileHref = $derived(
+		user?.role === 'admin' ? '/admin/profil' : user?.role === 'owner' ? '/owner/profil' : '/profil'
+	);
 	const isStaff = $derived(user?.role === 'admin' || user?.role === 'owner');
 	const pathname = $derived(page.url.pathname);
 	const isHome = $derived(pathname === '/');
@@ -52,6 +55,7 @@
 		{ label: 'Bundling', href: '/admin/bundling' },
 		{ label: 'Pembelian', href: '/admin/pembelian' },
 		{ label: 'Stok', href: '/admin/stok' },
+		{ label: 'Ulasan', href: '/admin/ulasan' },
 		{ label: 'Pelanggan', href: '/admin/pelanggan' },
 		{ label: 'Pengaturan', href: '/admin/pengaturan' }
 	];
@@ -174,14 +178,14 @@
 					{user.role === 'admin' ? 'Admin' : 'Owner'}
 				</span>
 				<a
-					href="/profil"
+					href={profileHref}
 					class="hidden items-center gap-1.5 text-smoke transition-colors hover:text-ink sm:inline-flex"
 					title="Pengaturan profil"
 				>
 					<User size={16} />
 					<span class="max-w-[140px] truncate">{user.name}</span>
 				</a>
-				<form method="POST" action="/logout">
+				<form method="POST" action="/staff/logout">
 					<button
 						type="submit"
 						class="flex cursor-pointer items-center gap-1.5 text-smoke transition-colors hover:text-danger"
@@ -234,13 +238,13 @@
 					<!-- Link profil & keluar -->
 					<div class="flex items-center justify-between pt-3 text-xs">
 						<a
-							href="/profil"
+							href={profileHref}
 							class="flex items-center gap-1.5 font-semibold tracking-wider text-smoke uppercase hover:text-ink"
 							onclick={() => (menuOpen = false)}
 						>
 							<Settings size={14} /> Pengaturan profil
 						</a>
-						<form method="POST" action="/logout">
+						<form method="POST" action="/staff/logout">
 							<button
 								type="submit"
 								class="flex cursor-pointer items-center gap-1.5 font-semibold tracking-wider text-danger uppercase"

@@ -1,4 +1,5 @@
-import { and, desc, eq, inArray, isNull, like, or } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, or } from 'drizzle-orm';
+import { contains } from '#lib/server/sql';
 import { db } from '#lib/server/db';
 import { bundleItems, bundles, products } from '#lib/server/db/schema';
 import { effectiveBundleStock } from '#lib/utils/bundle';
@@ -10,7 +11,7 @@ export const load: PageServerLoad = async ({ url }) => {
 
 	const conditions = [eq(bundles.isActive, true), isNull(bundles.deletedAt)];
 	if (q) {
-		conditions.push(or(like(bundles.name, `%${q}%`), like(bundles.description, `%${q}%`))!);
+		conditions.push(or(contains(bundles.name, q), contains(bundles.description, q))!);
 	}
 
 	const activeBundles = await db

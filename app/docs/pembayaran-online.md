@@ -17,7 +17,7 @@ Belum punya akun? Aktifkan payment gateway tiruan yang meniru alur Midtrans Snap
 4. Hasilnya diproses lewat kode yang sama dengan notifikasi Midtrans asli (pesanan langsung `diproses`,
    atau pembayaran ditolak dan pelanggan bisa mencoba lagi). Tidak ada jaringan atau uang yang terlibat.
 
-Batasan: simulator hanya aktif bila `PAYMENT_SIMULATOR="true"`, `MIDTRANS_SERVER_KEY` kosong, dan
+Batasan: simulator hanya aktif bila `PAYMENT_SIMULATOR="true"`, `MIDTRANS_SERVER_KEY` kosong, (pada build produksi `NODE_ENV=production`) `PAYMENT_SIMULATOR_ALLOW_PROD="true"`, dan
 `MIDTRANS_IS_PRODUCTION` bukan `"true"`. Halaman simulasi hanya bisa dibuka pelanggan pemilik pesanan.
 Pasang Server Key Midtrans untuk pembayaran sungguhan.
 

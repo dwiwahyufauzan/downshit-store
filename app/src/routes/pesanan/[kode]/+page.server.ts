@@ -55,7 +55,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	// Pembayaran online yang masih menunggu dicek langsung ke Midtrans: status langsung benar saat
 	// pelanggan kembali dari halaman bayar, walau notifikasi belum/tidak sampai (mis. server lokal).
 	if (order.status === 'menunggu_pembayaran') {
-		await syncPendingForOrder(order.id);
+		// baru kembali dari halaman bayar → selalu cek; refresh biasa dibatasi 1x/15 dtk agar tak menahan worker
+		await syncPendingForOrder(order.id, 4_000, url.searchParams.has('bayar') ? 0 : 15_000);
 		[order] = await findOrder();
 	}
 
@@ -187,6 +188,17 @@ export const actions: Actions = {
 
 		if (!(file instanceof File) || file.size === 0) {
 			return fail(400, { message: 'Silakan pilih berkas foto / bukti transfer pembayaran' });
+		}
+
+		// Cek kepemilikan & status SEBELUM dekode gambar (mahal): akun lain tak bisa memicu dekode untuk pesanan orang
+		const [own] = await db
+			.select({ status: orders.status })
+			.from(orders)
+			.where(and(eq(orders.code, params.kode), eq(orders.userId, user.id)))
+			.limit(1);
+		if (!own) throw error(404, 'Pesanan tidak ditemukan');
+		if (own.status !== 'menunggu_pembayaran') {
+			return fail(400, { message: 'Pesanan tidak dalam status menunggu pembayaran' });
 		}
 
 		const res = await saveImage(file, 'proofs');

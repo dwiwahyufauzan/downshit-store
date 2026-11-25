@@ -37,6 +37,7 @@ import {
 	PAYMENT_NOTE_GATEWAY_FAILED,
 	PAYMENT_NOTE_GATEWAY_REPLACED,
 	PAYMENT_NOTE_LATE_REFUND,
+	PAYMENT_NOTE_PARTIAL_REFUND,
 	type GatewayMethod,
 	type PaymentMethod
 } from '#lib/constants';
@@ -45,6 +46,8 @@ export type PaymentRow = typeof payments.$inferSelect;
 
 /** Sisa waktu bayar minimum agar transaksi online masih layak dibuat. */
 const MIN_REMAINING_MS = 2 * 60_000;
+/** Batas waktu sebuah percobaan bayar dianggap masih "sedang dibuat" (belum punya halaman bayar). */
+const IN_FLIGHT_MS = 30_000;
 
 /* ---------- Metode yang ditawarkan ---------- */
 export type PaymentOption = { method: PaymentMethod; label: string; hint: string };
@@ -114,6 +117,17 @@ export async function startOnlinePayment(
 		const same = pending.find((p) => p.method === method && p.redirectUrl);
 		if (same?.redirectUrl) return { kind: 'reuse', redirectUrl: same.redirectUrl };
 
+		// Percobaan lain baru saja dibuat dan halaman bayarnya belum jadi (klik ganda / dua tab):
+		// jangan ditimpa, sebab transaksinya mungkin sedang dibuat di Midtrans dan jadi yatim.
+		const inFlight = pending.find(
+			(p) => !p.redirectUrl && Date.now() - new Date(p.createdAt).getTime() < IN_FLIGHT_MS
+		);
+		if (inFlight) {
+			throw new OrderError(
+				'Pembayaran online sedang disiapkan. Tunggu beberapa detik lalu muat ulang halaman ini.'
+			);
+		}
+
 		const replaced: string[] = [];
 		for (const p of pending) {
 			tx.update(payments)
@@ -174,9 +188,19 @@ export async function startOnlinePayment(
 			customer: prep.customer
 		});
 	} catch (e) {
-		// belum ada transaksi di Midtrans: buang baris cadangan agar riwayat tidak berisi percobaan kosong
-		await db.delete(payments).where(eq(payments.id, prep.paymentId));
 		console.error('[gateway] gagal membuat transaksi', prep.gatewayOrderId, e);
+		if (e instanceof GatewayError && e.ambiguous) {
+			// Timeout/jaringan: Midtrans mungkin SUDAH membuat transaksi. Baris dipertahankan (ditolak) supaya
+			// nomor order_id tidak dipakai ulang (Midtrans menolak order_id kembar), dan transaksinya dibatalkan.
+			await db
+				.update(payments)
+				.set({ status: 'ditolak', note: PAYMENT_NOTE_GATEWAY_FAILED })
+				.where(eq(payments.id, prep.paymentId));
+			await cancelTransaction(prep.gatewayOrderId);
+		} else {
+			// Ditolak jelas oleh Midtrans: tidak ada transaksi, buang baris cadangan agar riwayat tidak berisi percobaan kosong
+			await db.delete(payments).where(eq(payments.id, prep.paymentId));
+		}
 		throw new OrderError(
 			e instanceof GatewayError
 				? 'Pembayaran online sedang bermasalah. Coba lagi sebentar atau pilih transfer bank.'
@@ -248,7 +272,10 @@ export async function applyGatewayStatus(s: MidtransStatus): Promise<ApplyResult
 				const others = tx.select().from(payments).where(eq(payments.orderId, o.id)).all();
 				const alreadyPaid = others.some((p) => p.id !== pay.id && p.status === 'dikonfirmasi');
 
-				if (o.status === 'dibatalkan' || alreadyPaid) {
+				// Hanya pesanan yang masih menunggu bayar yang boleh dimajukan; selain itu (dibatalkan, atau sudah
+				// diproses/dikirim/selesai lewat pembayaran lain) status TIDAK boleh ditimpa → tandai refund.
+				const payable = o.status === 'menunggu_pembayaran' || o.status === 'menunggu_konfirmasi';
+				if (!payable || alreadyPaid) {
 					tx.update(payments)
 						.set({
 							...detail,
@@ -345,6 +372,27 @@ export async function applyGatewayStatus(s: MidtransStatus): Promise<ApplyResult
 				return 'applied';
 			}
 
+			case 'partial_refund': {
+				// Refund/chargeback sebagian: status pembayaran & pesanan tidak diubah, cukup tandai agar admin meninjau
+				if (pay.status !== 'dikonfirmasi' || pay.note === PAYMENT_NOTE_PARTIAL_REFUND) {
+					tx.update(payments).set(detail).where(eq(payments.id, pay.id)).run();
+					return 'ignored';
+				}
+				tx.update(payments)
+					.set({ ...detail, note: PAYMENT_NOTE_PARTIAL_REFUND })
+					.where(eq(payments.id, pay.id))
+					.run();
+				logActivity(
+					null,
+					'payment.partial_refund',
+					'order',
+					o.id,
+					`Pesanan ${o.code}: Midtrans mencatat refund/chargeback SEBAGIAN. Tinjau di dashboard Midtrans dan sesuaikan pesanan bila perlu`,
+					tx
+				);
+				return 'applied';
+			}
+
 			default: {
 				// pending: simpan nomor VA / kode bayar agar bisa ditampilkan ke pelanggan
 				tx.update(payments).set(detail).where(eq(payments.id, pay.id)).run();
@@ -358,15 +406,19 @@ export async function applyGatewayStatus(s: MidtransStatus): Promise<ApplyResult
 }
 
 /* ---------- Sinkronisasi (cadangan bila notifikasi terlambat/tidak sampai) ---------- */
-async function syncOne(gatewayOrderId: string, timeoutMs?: number): Promise<boolean> {
+/** synced = status diterapkan · missing = Midtrans tidak mengenal transaksi (tak ada yang disinkronkan) · error = gagal dicek */
+async function syncOne(
+	gatewayOrderId: string,
+	timeoutMs?: number
+): Promise<'synced' | 'missing' | 'error'> {
 	try {
 		const st = await getTransactionStatus(gatewayOrderId, timeoutMs);
-		if (!st) return false;
+		if (!st) return 'missing';
 		await applyGatewayStatus(st);
-		return true;
+		return 'synced';
 	} catch (e) {
 		console.warn('[gateway] sinkron gagal', gatewayOrderId, (e as Error).message);
-		return false;
+		return 'error';
 	}
 }
 
@@ -382,12 +434,33 @@ const pendingGateway = (orderId: number) =>
 			)
 		);
 
-/** Cek ke Midtrans semua transaksi online yang masih menunggu untuk satu pesanan. */
-export async function syncPendingForOrder(orderId: number, timeoutMs = 4_000): Promise<void> {
-	if (!isGatewayConfigured()) return;
-	for (const p of await pendingGateway(orderId)) {
-		if (p.gatewayOrderId) await syncOne(p.gatewayOrderId, timeoutMs);
+/** Waktu sinkron terakhir per pesanan (untuk throttle halaman yang sering di-refresh). */
+const lastSync = new Map<number, number>();
+
+/**
+ * Cek ke Midtrans semua transaksi online yang masih menunggu untuk satu pesanan.
+ * Mengembalikan false bila ada transaksi yang statusnya GAGAL dipastikan (timeout/5xx):
+ * pemanggil yang hendak membatalkan pesanan harus menunda, sebab transaksi itu mungkin sudah lunas.
+ */
+export async function syncPendingForOrder(
+	orderId: number,
+	timeoutMs = 4_000,
+	/** >0: lewati bila pesanan ini sudah dicek dalam rentang tersebut (mis. halaman yang sering di-refresh) */
+	throttleMs = 0
+): Promise<boolean> {
+	if (!isGatewayConfigured()) return true;
+	if (throttleMs > 0) {
+		const last = lastSync.get(orderId) ?? 0;
+		if (Date.now() - last < throttleMs) return true;
+		lastSync.set(orderId, Date.now());
+		if (lastSync.size > 5_000) lastSync.clear(); // jaga memori tetap kecil
 	}
+	let allKnown = true;
+	for (const p of await pendingGateway(orderId)) {
+		if (p.gatewayOrderId && (await syncOne(p.gatewayOrderId, timeoutMs)) === 'error')
+			allKnown = false;
+	}
+	return allKnown;
 }
 
 /** Untuk cron: periksa transaksi online yang masih menunggu pada pesanan yang belum dibayar. */
@@ -406,6 +479,6 @@ export async function reconcileGatewayPayments(limit = 50): Promise<number> {
 		)
 		.limit(limit);
 	let n = 0;
-	for (const r of rows) if (r.gatewayOrderId && (await syncOne(r.gatewayOrderId))) n++;
+	for (const r of rows) if (r.gatewayOrderId && (await syncOne(r.gatewayOrderId)) === 'synced') n++;
 	return n;
 }

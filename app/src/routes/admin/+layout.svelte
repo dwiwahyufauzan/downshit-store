@@ -16,7 +16,8 @@
 		{ label: 'Stok', href: '/admin/stok' },
 		{ label: 'Ulasan', href: '/admin/ulasan' },
 		{ label: 'Pelanggan', href: '/admin/pelanggan' },
-		{ label: 'Pengaturan', href: '/admin/pengaturan' }
+		{ label: 'Pengaturan', href: '/admin/pengaturan' },
+		{ label: 'Profil akun', href: '/admin/profil' }
 	]);
 </script>
 

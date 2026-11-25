@@ -158,7 +158,12 @@ export const actions = {
 		}
 
 		const imagesToDeleteFiles: string[] = [];
-		const primaryImageUrl = (fd.get('primaryImageUrl') as string | null) || null;
+		let primaryImageUrl = (fd.get('primaryImageUrl') as string | null) || null;
+		// Foto utama dipilih dari foto baru: petakan urutannya ke URL hasil unggah
+		const newIdx = String(fd.get('primaryNewIndex') ?? '');
+		if (/^\d+$/.test(newIdx) && uploadedUrls[Number(newIdx)]) {
+			primaryImageUrl = uploadedUrls[Number(newIdx)];
+		}
 
 		try {
 			await transact((tx) => {

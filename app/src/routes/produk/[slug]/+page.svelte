@@ -26,6 +26,14 @@
 	let adding = $state(false);
 	let savingFavorite = $state(false);
 
+	// Komponen halaman dipakai ulang saat pindah produk (mis. "Produk serupa"): pilihan lama tidak boleh terbawa
+	$effect(() => {
+		void data.product.id;
+		qty = 1;
+		size = '';
+		activeImageIndex = 0;
+	});
+
 	const seoDescription = $derived(
 		p.description?.slice(0, 160) ||
 			`Beli ${p.name} harga ${formatRupiah(p.price)} di Store Downshit.`

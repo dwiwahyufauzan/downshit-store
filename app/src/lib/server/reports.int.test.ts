@@ -177,6 +177,28 @@ describe('ringkasan penjualan (BR-12, BR-21)', () => {
 		expect(s.avg).toBe(337_500); // subtotal / jumlah pesanan
 	});
 
+	it('pesanan yang dananya sudah dikembalikan PENUH tidak dihitung sebagai penjualan', async () => {
+		const { from, to } = range('2026-11-01', '2026-11-30');
+		const before = await salesSummary(from, to);
+		const o5 = raw.prepare("SELECT id FROM orders WHERE code = 'T-O5'").get() as { id: number };
+		const addPay = (status: string) =>
+			raw
+				.prepare('INSERT INTO payments (order_id, amount, status) VALUES (?, 300000, ?)')
+				.run(o5.id, status);
+		try {
+			addPay('dikembalikan');
+			const refunded = await salesSummary(from, to);
+			expect(refunded.revenue).toBe(before.revenue - 300_000);
+			expect(refunded.orders).toBe(before.orders - 1);
+
+			// ada pembayaran lain yang dikonfirmasi (mis. bayar ganda lalu salah satunya di-refund) → tetap penjualan
+			addPay('dikonfirmasi');
+			expect((await salesSummary(from, to)).revenue).toBe(before.revenue);
+		} finally {
+			raw.prepare('DELETE FROM payments WHERE order_id = ?').run(o5.id);
+		}
+	});
+
 	it('hanya diproses/dikirim/selesai: batal & menunggu tidak dihitung', async () => {
 		const { from, to } = range('2026-11-05', '2026-11-07');
 		const s = await salesSummary(from, to);

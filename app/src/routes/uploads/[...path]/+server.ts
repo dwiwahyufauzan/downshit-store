@@ -5,6 +5,7 @@ import { UPLOAD_DIR } from '$app/env/private';
 import { eq } from 'drizzle-orm';
 import { db } from '#lib/server/db';
 import { payments, orders } from '#lib/server/db/schema';
+import { STAFF_SESSION_COOKIE, validateSession } from '#lib/server/auth';
 import type { RequestHandler } from './$types';
 
 const ROOT = path.resolve(UPLOAD_DIR ?? './uploads');
@@ -19,7 +20,7 @@ const MIME: Record<string, string> = {
 	png: 'image/png'
 };
 
-export const GET: RequestHandler = async ({ params, locals }) => {
+export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 	const rel = params.path ?? '';
 	if (!ALLOWED.test(rel)) error(404, 'File tidak ditemukan'); // menolak "..", subfolder lain, ekstensi lain
 
@@ -29,9 +30,13 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	const isProof = rel.startsWith('proofs/');
 	if (isProof) {
 		// Bukti pembayaran: hanya pemilik pesanan, admin, atau owner
-		if (!locals.user) error(401, 'Silakan masuk terlebih dahulu');
+		// Staf (cookie staf) dicek lebih dulu: window admin & pelanggan bisa hidup berdampingan di satu peramban
+		const staffToken = cookies.get(STAFF_SESSION_COOKIE);
+		const staff = staffToken ? await validateSession(staffToken) : null;
+		const viewer = staff && staff.role !== 'konsumen' ? staff : locals.user;
+		if (!viewer) error(401, 'Silakan masuk terlebih dahulu');
 
-		if (locals.user.role === 'konsumen') {
+		if (viewer.role === 'konsumen') {
 			const [row] = await db
 				.select({ orderUserId: orders.userId })
 				.from(payments)
@@ -40,7 +45,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 				.limit(1);
 
 			// 404 (bukan 403) agar keberadaan file tidak bocor ke konsumen lain
-			if (!row || row.orderUserId !== locals.user.id) error(404, 'File tidak ditemukan');
+			if (!row || row.orderUserId !== viewer.id) error(404, 'File tidak ditemukan');
 		}
 	}
 

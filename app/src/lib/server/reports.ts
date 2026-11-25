@@ -10,10 +10,20 @@ export type StatusFilter = (typeof STATUS_FILTERS)[number];
 export const parseStatus = (v: string | null): StatusFilter =>
 	(STATUS_FILTERS as readonly string[]).includes(v ?? '') ? (v as StatusFilter) : 'semua';
 
+/**
+ * Pesanan yang dananya sudah dikembalikan PENUH (ada pembayaran `dikembalikan`, tak ada yang `dikonfirmasi`)
+ * bukan penjualan lagi, walau status pesanannya belum diubah admin.
+ */
+const notFullyRefunded = sql`NOT (
+	EXISTS (SELECT 1 FROM payments p WHERE p.order_id = ${orders.id} AND p.status = 'dikembalikan')
+	AND NOT EXISTS (SELECT 1 FROM payments p WHERE p.order_id = ${orders.id} AND p.status = 'dikonfirmasi')
+)`;
+
 const cond = (from: Date, to: Date, status: StatusFilter = 'semua') => {
 	const fromIso = from.toISOString();
 	const toIso = to.toISOString();
 	return and(
+		notFullyRefunded,
 		status === 'semua' ? inArray(orders.status, [...PAID_STATUSES]) : eq(orders.status, status),
 		gte(orders.createdAt, fromIso),
 		lte(orders.createdAt, toIso)

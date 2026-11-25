@@ -29,7 +29,8 @@ Dokumen perancangan (PRD, UML, wireframe, test case, traceability) ada di folder
 ```sh
 npm install
 cp .env.example .env          # lalu sesuaikan nilainya
-npm run db:push               # buat tabel di SQLite (downshit.db)
+npm run db:push               # DB BARU/kosong: buat tabel di SQLite (downshit.db)
+                              # DB lama berisi data: JANGAN db:push, pakai `npm run db:migrate-sync`
 npm run db:seed               # akun owner & admin awal
 npm run dev                   # http://localhost:5173
 ```

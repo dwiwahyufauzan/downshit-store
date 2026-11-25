@@ -94,7 +94,8 @@
 			0
 		)
 	);
-	const priceNum = $derived(bundlePrice.trim() === '' ? null : Number(bundlePrice));
+	// bind:value pada <input type="number"> mengubah state menjadi number/null → selalu dinormalkan ke string dulu
+	const priceNum = $derived(String(bundlePrice ?? '').trim() === '' ? null : Number(bundlePrice));
 	const savings = $derived(priceNum === null ? null : normalPrice - priceNum);
 
 	// Stok efektif = min(kuota, min(floor(stok komponen / qty)))  (BR-06, TC-005-11)

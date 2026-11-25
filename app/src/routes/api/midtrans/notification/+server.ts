@@ -26,6 +26,10 @@ export const POST: RequestHandler = async ({ request }) => {
 		throw error(400, 'Body bukan JSON');
 	}
 
+	// Body harus objek dengan order_id string; selain itu 400 (bukan 500 karena TypeError)
+	if (!body || typeof body !== 'object' || typeof body.order_id !== 'string') {
+		throw error(400, 'Body notifikasi tidak valid');
+	}
 	if (!body.order_id || !verifySignature(body)) {
 		throw error(403, 'Tanda tangan tidak valid');
 	}

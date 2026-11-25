@@ -10,7 +10,12 @@ const sqlite = new Database(dbPath);
 const db = drizzle(sqlite, { schema: s });
 
 const argon = (p: string) => hash(p, { memoryCost: 19456, timeCost: 2, parallelism: 1 });
-const isProd = process.env.NODE_ENV === 'production';
+// NODE_ENV tidak diisi `tsx`/dotenv, jadi ORIGIN https pada domain asli juga dianggap produksi
+// (domain tunnel demo *.trycloudflare.com dan localhost tidak).
+const origin = process.env.ORIGIN ?? '';
+const isProd =
+	process.env.NODE_ENV === 'production' ||
+	(origin.startsWith('https://') && !/\.trycloudflare\.com(\/|$)/.test(origin));
 // Dev: boleh memakai password contoh. Produksi: WAJIB diisi eksplisit (lihat pengaman di seed()).
 const defaultPassword = process.env.SEED_DEFAULT_PASSWORD || (isProd ? '' : 'Ganti-Password-123!');
 
@@ -47,10 +52,8 @@ async function seed() {
 	};
 
 	for (const [key, value] of Object.entries(defaultSettings)) {
-		await db.insert(s.settings).values({ key, value }).onConflictDoUpdate({
-			target: s.settings.key,
-			set: { value }
-		});
+		// Hanya mengisi yang belum ada: seed ulang tidak boleh menimpa rekening/ongkir/WhatsApp yang sudah diatur admin
+		await db.insert(s.settings).values({ key, value }).onConflictDoNothing();
 	}
 	console.log('  ✓ Pengaturan toko berhasil disimpan');
 
@@ -60,7 +63,7 @@ async function seed() {
 	const initialUsers = [
 		{
 			name: 'Farhat',
-			email: process.env.SEED_OWNER_EMAIL || 'owner@downshit.local',
+			email: (process.env.SEED_OWNER_EMAIL || 'owner@downshit.local').trim().toLowerCase(),
 			role: 'owner' as const,
 			mustChangePassword: isProd,
 			passwordHash,
@@ -69,7 +72,7 @@ async function seed() {
 		},
 		{
 			name: 'Arnold',
-			email: process.env.SEED_ADMIN_EMAIL || 'admin@downshit.local',
+			email: (process.env.SEED_ADMIN_EMAIL || 'admin@downshit.local').trim().toLowerCase(),
 			role: 'admin' as const,
 			mustChangePassword: isProd,
 			passwordHash,

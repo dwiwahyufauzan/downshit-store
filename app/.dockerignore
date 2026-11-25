@@ -1,0 +1,12 @@
+# WAJIB: salin sebagai app/.dockerignore. Tanpa ini `COPY . .` menimpa node_modules Linux dengan node_modules macOS
+# (binary better-sqlite3/sharp/@node-rs/argon2 menjadi darwin) dan .env ikut masuk layer image.
+node_modules
+.env*
+build
+.svelte-kit
+uploads*
+*.db
+*.db-wal
+*.db-shm
+tests/.tmp*
+.git

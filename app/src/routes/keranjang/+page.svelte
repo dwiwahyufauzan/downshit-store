@@ -76,7 +76,7 @@
 					<li class="flex gap-4 py-5 first:pt-0 sm:gap-6">
 						<a
 							href={item.isProduct ? `/produk/${item.slug}` : `/bundling/${item.slug}`}
-							class="product-media block w-24 shrink-0 sm:w-32"
+							class="product-media block !aspect-square w-24 shrink-0 sm:w-32 [&_img]:!object-contain"
 							tabindex="-1"
 							aria-hidden="true"
 						>

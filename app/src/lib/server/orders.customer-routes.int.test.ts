@@ -33,6 +33,7 @@ import path from 'node:path';
 import { isRedirect } from '@sveltejs/kit';
 import { db } from './db';
 import { payments } from './db/schema';
+import { createSession } from './auth';
 import { cancelOrder } from './orders';
 import * as detail from '../../routes/pesanan/[kode]/+page.server';
 import * as riwayat from '../../routes/pesanan/+page.server';
@@ -223,8 +224,9 @@ describe('bukti pembayaran: akses (TC-010-03, TC-017-01)', () => {
 		} as never);
 		const url = db.select().from(payments).get()!.proofUrl!;
 		const rel = url.replace('/uploads/', '');
-		const get = (locals: unknown) =>
-			catchResult(() => uploads.GET({ params: { path: rel }, locals } as never));
+		const noCookies = { get: () => undefined };
+		const get = (locals: unknown, cookies: unknown = noCookies) =>
+			catchResult(() => uploads.GET({ params: { path: rel }, locals, cookies } as never));
 
 		const guest = await get(GUEST);
 		expect(!guest.ok && guest.error.status).toBe(401);
@@ -234,5 +236,19 @@ describe('bukti pembayaran: akses (TC-010-03, TC-017-01)', () => {
 			const r = await get(loc);
 			expect(r.ok && (r.value as Response).status).toBe(200);
 		}
+
+		// Window admin & pelanggan lain di peramban yang sama: cookie staf menang atas sesi pelanggan
+		const jar = new Map<string, string>();
+		await createSession(
+			adminId,
+			{ set: (n: string, v: string) => jar.set(n, v) } as never,
+			'staff'
+		);
+		const staffCookies = { get: (n: string) => jar.get(n) };
+		const asAdminBesideCustomer = await get(U(buyer2Id), staffCookies);
+		expect(asAdminBesideCustomer.ok && (asAdminBesideCustomer.value as Response).status).toBe(200);
+		// Cookie staf tanpa sesi pelanggan juga diterima
+		const asAdminOnly = await get(GUEST, staffCookies);
+		expect(asAdminOnly.ok && (asAdminOnly.value as Response).status).toBe(200);
 	});
 });

@@ -20,7 +20,18 @@ describe('isSimulator', () => {
 		expect(await simulatorFor({})).toBe(false);
 		expect(await simulatorFor({ PAYMENT_SIMULATOR: 'false' })).toBe(false);
 		expect(await simulatorFor({ PAYMENT_SIMULATOR: '1' })).toBe(false);
-	});
+	}, 20_000); // impor pertama memuat seluruh modul DB: bisa lambat saat tes lain berjalan paralel
+
+	it('build produksi (NODE_ENV=production) menolak simulator kecuali PAYMENT_SIMULATOR_ALLOW_PROD="true"', async () => {
+		vi.stubEnv('NODE_ENV', 'production');
+		try {
+			expect(await simulatorFor({ PAYMENT_SIMULATOR: 'true' })).toBe(false);
+			vi.stubEnv('PAYMENT_SIMULATOR_ALLOW_PROD', 'true');
+			expect(await simulatorFor({ PAYMENT_SIMULATOR: 'true' })).toBe(true);
+		} finally {
+			vi.unstubAllEnvs();
+		}
+	}, 20_000);
 	it('Midtrans asli (Server Key terisi) selalu menang', async () => {
 		expect(
 			await simulatorFor({ PAYMENT_SIMULATOR: 'true', MIDTRANS_SERVER_KEY: 'SB-Mid-server-x' })

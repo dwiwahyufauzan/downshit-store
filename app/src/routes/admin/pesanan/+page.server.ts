@@ -1,8 +1,8 @@
-import { and, count, desc, eq, gte, like, lte, or, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gte, lte, or, sql } from 'drizzle-orm';
 import { db } from '#lib/server/db';
 import { orders, users } from '#lib/server/db/schema';
 import { requireRole } from '#lib/server/guards';
-import { escapeLike, pageParam } from '#lib/server/sql';
+import { contains, pageParam } from '#lib/server/sql';
 import { isYmd, wibEnd, wibStart } from '#lib/server/time';
 import { ORDER_STATUS, type OrderStatus } from '#lib/constants';
 
@@ -37,11 +37,7 @@ export const load = async ({ url, locals }) => {
 		dari ? gte(orders.createdAt, wibStart(dari).toISOString()) : undefined,
 		sampai ? lte(orders.createdAt, wibEnd(sampai).toISOString()) : undefined,
 		q
-			? or(
-					like(orders.code, `%${escapeLike(q)}%`),
-					like(users.name, `%${escapeLike(q)}%`),
-					like(orders.recipientName, `%${escapeLike(q)}%`)
-				)
+			? or(contains(orders.code, q), contains(users.name, q), contains(orders.recipientName, q))
 			: undefined
 	);
 

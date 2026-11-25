@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_PRICE_FILTER, escapeLike, pageParam, priceParam } from './sql';
+import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { MAX_PRICE_FILTER, contains, escapeLike, pageParam, priceParam } from './sql';
 
 const u = (qs: string) => new URL(`http://x/produk${qs}`);
 
@@ -36,5 +39,36 @@ describe('helper sql lain', () => {
 		expect(pageParam(u('?page=-4'))).toBe(1);
 		expect(pageParam(u('?page=abc'))).toBe(1);
 		expect(pageParam(u('?page=999999999'))).toBe(100_000);
+	});
+});
+
+describe('contains (LIKE literal dengan ESCAPE)', () => {
+	const t = sqliteTable('t', { name: text('name') });
+	const sqlite = new Database(':memory:');
+	sqlite.exec('create table t (name text)');
+	const db = drizzle(sqlite);
+	db.insert(t)
+		.values(
+			['Diskon 50% Hoodie', 'Diskon 500 Hoodie', 'a_b kaos', 'axb kaos', 'back\\slash'].map(
+				(name) => ({ name })
+			)
+		)
+		.run();
+	const find = (q: string) =>
+		db
+			.select()
+			.from(t)
+			.where(contains(t.name, q))
+			.all()
+			.map((r) => r.name);
+
+	it('% dan _ dicari apa adanya, bukan wildcard', () => {
+		expect(find('50%')).toEqual(['Diskon 50% Hoodie']);
+		expect(find('a_b')).toEqual(['a_b kaos']);
+		expect(find('\\')).toEqual(['back\\slash']);
+	});
+	it('pencarian biasa tetap mencocokkan sebagian kata', () => {
+		expect(find('hoodie')).toHaveLength(2);
+		expect(find('tidak-ada')).toEqual([]);
 	});
 });

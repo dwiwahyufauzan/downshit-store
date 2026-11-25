@@ -1,7 +1,14 @@
 import type { Handle, HandleServerError } from '@sveltejs/kit/hooks';
 import { error, redirect } from '@sveltejs/kit';
 import { CATALOG_REQUIRES_LOGIN, ORIGIN } from '$app/env/private';
-import { SESSION_COOKIE, validateSession } from '#lib/server/auth';
+import {
+	STAFF_SESSION_COOKIE,
+	cookieNameOf,
+	portalOf,
+	portalOfPath,
+	validateSession
+} from '#lib/server/auth';
+import { profilePathFor } from '#lib/server/login';
 
 const ADMIN_AREA = /^\/admin(\/|$)/;
 const OWNER_AREA = /^\/owner(\/|$)/;
@@ -20,12 +27,22 @@ const NO_SESSION = [/^\/uploads\/(products|bundles)\//, /^\/internal\//, /^\/api
 const FORCED_CHANGE_ALLOWED = [
 	/^\/profil(\/|$)/,
 	/^\/logout(\/|$)/,
+	/^\/(admin|owner)\/profil(\/|$)/,
+	/^\/staff\/logout(\/|$)/,
 	/^\/uploads\//,
 	/^\/_app\//,
 	/^\/favicon/
 ];
 
 const isHttps = ORIGIN?.startsWith('https') ?? false;
+
+// Tanpa ADDRESS_HEADER, getClientAddress() = IP proxy: SEMUA pengunjung berbagi satu kunci rate limit login/registrasi
+if (isHttps && !process.env.ADDRESS_HEADER) {
+	console.warn(
+		'[config] ORIGIN https tetapi ADDRESS_HEADER kosong: rate limit login memakai IP proxy yang sama untuk semua pengunjung. ' +
+			'Isi ADDRESS_HEADER (mis. X-Forwarded-For atau CF-Connecting-IP) dan XFF_DEPTH sesuai proxy Anda.'
+	);
+}
 
 export const handle: Handle = async ({ event, resolve }) => {
 	// Cocokkan pada path ter-decode agar `/%61dmin` tidak lolos dari gerbang
@@ -38,13 +55,18 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 	path = path.replace(/\/{2,}/g, '/');
 
-	const token = event.cookies.get(SESSION_COOKIE);
+	// Pelanggan & staf memakai cookie berbeda → login di satu window tidak menimpa sesi window lain
+	const portal = portalOfPath(path);
+	const token = event.cookies.get(cookieNameOf(portal));
 	const skipSession = NO_SESSION.some((r) => r.test(path));
-	event.locals.user = token && !skipSession ? await validateSession(token) : null;
-	event.locals.sessionId = token ?? null;
+	let sessionUser = token && !skipSession ? await validateSession(token) : null;
+	// Cookie portal ini hanya sah untuk role portalnya (mencegah cookie tertukar)
+	if (sessionUser && portalOf(sessionUser.role) !== portal) sessionUser = null;
+	event.locals.user = sessionUser;
+	event.locals.sessionId = sessionUser ? (token ?? null) : null;
 
 	const user = event.locals.user;
-	const isStaffArea = ADMIN_AREA.test(path) || OWNER_AREA.test(path);
+	const isStaffArea = portal === 'staff';
 	// Portal terpisah: area staf → /staff/login, halaman pelanggan → /login
 	const toLogin = () =>
 		redirect(
@@ -52,8 +74,15 @@ export const handle: Handle = async ({ event, resolve }) => {
 			`${isStaffArea ? '/staff/login' : '/login'}?next=${encodeURIComponent(event.url.pathname + event.url.search)}`
 		);
 
-	if (!user && (isStaffArea || NEEDS_LOGIN.some((r) => r.test(path)))) toLogin();
-	if (!user && CATALOG_REQUIRES_LOGIN === 'true' && CATALOG.some((r) => r.test(path))) toLogin();
+	const needsLogin =
+		ADMIN_AREA.test(path) || OWNER_AREA.test(path) || NEEDS_LOGIN.some((r) => r.test(path));
+	if (!user && needsLogin) toLogin();
+	if (!user && CATALOG_REQUIRES_LOGIN === 'true' && CATALOG.some((r) => r.test(path))) {
+		// Staf (cookie terpisah) tetap boleh melihat katalog, mis. membuka produk dari halaman admin
+		const staffToken = event.cookies.get(STAFF_SESSION_COOKIE);
+		const staff = staffToken ? await validateSession(staffToken) : null;
+		if (!staff || portalOf(staff.role) !== 'staff') toLogin();
+	}
 
 	// Gerbang role (lapis pertama; setiap load/action tetap memanggil requireRole)
 	if (user && ADMIN_AREA.test(path) && user.role !== 'admin') {
@@ -65,7 +94,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// BR-24: password sementara/default harus diganti sebelum memakai fitur lain
 	if (user?.mustChangePassword && !FORCED_CHANGE_ALLOWED.some((r) => r.test(path))) {
-		redirect(303, '/profil?wajib=1');
+		redirect(303, `${profilePathFor(user.role)}?wajib=1`);
 	}
 
 	const response = await resolve(event);
@@ -77,7 +106,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 	// Halaman untuk pengguna login jangan di-cache: tombol Back setelah logout tidak boleh
 	// menampilkan halaman terproteksi (TC-001-09)
-	if (token && response.headers.get('content-type')?.includes('text/html')) {
+	if ((token || user) && response.headers.get('content-type')?.includes('text/html')) {
 		response.headers.set('Cache-Control', 'private, no-store');
 	}
 	if (isHttps) {

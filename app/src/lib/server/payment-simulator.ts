@@ -13,9 +13,17 @@ import { db } from './db';
 import { PAYMENT_METHODS, type GatewayMethod } from '#lib/constants';
 import type { MidtransStatus, SnapInput } from './midtrans';
 
-/** Aktif hanya bila diminta eksplisit, Midtrans asli tidak terpasang, dan bukan mode produksi Midtrans. */
+/**
+ * Aktif hanya bila diminta eksplisit, Midtrans asli tidak terpasang, dan bukan mode produksi Midtrans.
+ * Pada build produksi (NODE_ENV=production) simulator tambahan WAJIB diizinkan eksplisit lewat
+ * PAYMENT_SIMULATOR_ALLOW_PROD="true", agar `.env` demo yang terbawa ke server asli tidak membuka
+ * tombol "lunas tanpa bayar" bagi pelanggan.
+ */
 export const isSimulator = () =>
-	PAYMENT_SIMULATOR === 'true' && !MIDTRANS_SERVER_KEY && MIDTRANS_IS_PRODUCTION !== 'true';
+	PAYMENT_SIMULATOR === 'true' &&
+	!MIDTRANS_SERVER_KEY &&
+	MIDTRANS_IS_PRODUCTION !== 'true' &&
+	(process.env.NODE_ENV !== 'production' || process.env.PAYMENT_SIMULATOR_ALLOW_PROD === 'true');
 
 export type SimRow = typeof paymentSimulations.$inferSelect;
 export type SimOutcome = 'settlement' | 'deny' | 'expire';

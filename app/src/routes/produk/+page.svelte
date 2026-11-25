@@ -52,6 +52,11 @@
 	// Ukuran yang dipilih di panel sebelum "Terapkan" ditekan (awalnya mengikuti URL)
 	let ukuranPick = $state<string | null>(null);
 	const ukuranSel = $derived(ukuranPick ?? data.filters.ukuran);
+	// Filter dari URL berubah (terapkan/hapus/reset) → pilihan lokal dibuang agar tidak "menempel"
+	$effect(() => {
+		void data.filters.ukuran;
+		ukuranPick = null;
+	});
 	const rp = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
 </script>
 

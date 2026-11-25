@@ -1,9 +1,9 @@
 import { fail } from '@sveltejs/kit';
-import { and, count, desc, eq, like, or } from 'drizzle-orm';
+import { and, count, desc, eq, or } from 'drizzle-orm';
 import { db } from '#lib/server/db';
 import { orders, products, reviews, users } from '#lib/server/db/schema';
 import { requireRole } from '#lib/server/guards';
-import { escapeLike, idParam, pageParam } from '#lib/server/sql';
+import { contains, idParam, pageParam } from '#lib/server/sql';
 import { logActivity } from '#lib/server/activity';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -22,11 +22,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		rating ? eq(reviews.rating, rating) : undefined,
 		visible === null ? undefined : eq(reviews.isVisible, visible),
 		q
-			? or(
-					like(products.name, `%${escapeLike(q)}%`),
-					like(reviews.comment, `%${escapeLike(q)}%`),
-					like(users.name, `%${escapeLike(q)}%`)
-				)
+			? or(contains(products.name, q), contains(reviews.comment, q), contains(users.name, q))
 			: undefined
 	);
 

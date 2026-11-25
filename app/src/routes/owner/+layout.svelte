@@ -8,7 +8,8 @@
 		{ label: 'Dashboard', href: '/owner', exact: true },
 		{ label: 'Laporan penjualan', href: '/owner/laporan' },
 		{ label: 'Ringkasan stok', href: '/owner/stok' },
-		{ label: 'Log aktivitas', href: '/owner/aktivitas' }
+		{ label: 'Log aktivitas', href: '/owner/aktivitas' },
+		{ label: 'Profil akun', href: '/owner/profil' }
 	];
 </script>
 

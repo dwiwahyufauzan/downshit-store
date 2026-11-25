@@ -8,6 +8,17 @@ export default defineConfig(({ mode }) => {
 	// ORIGIN https → produksi di belakang TLS: paksa sub-resource ikut https
 	const origin = process.env.ORIGIN ?? loadEnv(mode, process.cwd(), '').ORIGIN ?? '';
 	const https = origin.startsWith('https');
+	// Wildcard tunnel Cloudflare hanya untuk dev/demo: bila ORIGIN adalah domain asli (https bukan trycloudflare),
+	// jangan percayai form lintas-origin dari tunnel milik siapa pun. Tambahan lewat CSRF_TRUSTED_ORIGINS (koma).
+	const tunnelDemo = !https || /\.trycloudflare\.com/.test(origin);
+	const extraOrigins = (
+		process.env.CSRF_TRUSTED_ORIGINS ??
+		loadEnv(mode, process.cwd(), '').CSRF_TRUSTED_ORIGINS ??
+		''
+	)
+		.split(',')
+		.map((o) => o.trim())
+		.filter(Boolean);
 
 	return {
 		server: {
@@ -26,9 +37,9 @@ export default defineConfig(({ mode }) => {
 				},
 				adapter: adapter(),
 				// SvelteKit 3 tidak lagi menyediakan alias $lib: pakai subpath imports `#lib/*` (lihat "imports" di package.json)
-				// CSRF: izinkan form submission via Quick Tunnel Cloudflare (trycloudflare.com)
+				// CSRF: izinkan form submission via Quick Tunnel Cloudflare (trycloudflare.com) hanya untuk dev/demo
 				csrf: {
-					trustedOrigins: ['https://*.trycloudflare.com']
+					trustedOrigins: [...(tunnelDemo ? ['https://*.trycloudflare.com'] : []), ...extraOrigins]
 				},
 				// CSP (SRS-NF-004): SvelteKit menambahkan nonce/hash otomatis untuk skrip & gaya bawaannya.
 				// JANGAN pakai `reportOnly` tanpa `report-uri` — SvelteKit melempar error dan semua halaman jadi 500.

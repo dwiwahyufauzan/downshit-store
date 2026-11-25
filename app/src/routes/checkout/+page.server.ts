@@ -1,4 +1,4 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { fail, isRedirect, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { requireRole } from '#lib/server/guards';
 import { db } from '#lib/server/db';
@@ -148,8 +148,13 @@ export const actions: Actions = {
 				);
 				throw redirect(303, redirectUrl);
 			} catch (err) {
-				if (!(err instanceof OrderError)) throw err; // termasuk redirect
-				console.error('Checkout: gagal memulai pembayaran online', err.message);
+				if (isRedirect(err)) throw err;
+				// Pesanan SUDAH dibuat & stok terpotong: error apa pun (OrderError maupun gangguan tak terduga)
+				// jangan berujung halaman 500, arahkan ke pesanan agar pelanggan bisa memilih ulang metode bayar.
+				console.error(
+					'Checkout: gagal memulai pembayaran online',
+					err instanceof OrderError ? err.message : err
+				);
 				throw redirect(303, `/pesanan/${createdOrder.code}?baru=1&bayar=gagal`);
 			}
 		}

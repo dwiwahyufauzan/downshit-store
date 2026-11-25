@@ -27,6 +27,9 @@ import { db } from './db';
 import { activityLogs, loginAttempts, sessions, users } from './db/schema';
 import {
 	SESSION_COOKIE,
+	STAFF_SESSION_COOKIE,
+	cookieNameOf,
+	portalOfPath,
 	createSession,
 	destroyAllSessions,
 	destroyOtherSessions,
@@ -50,7 +53,7 @@ import {
 	tooManyAttempts
 } from './rate-limit';
 import { requireRole, requireUser } from './guards';
-import { loginPathFor, performLogin, type Portal } from './login';
+import { loginPathFor, performLogin, profilePathFor, type Portal } from './login';
 
 function assertOwnDb() {
 	const rows = db.all<{ file: string }>(sql`select file from pragma_database_list`);
@@ -370,7 +373,8 @@ describe('portal login terpisah: pelanggan (/login) vs staf (/staff/login)', () 
 		await seedAccounts();
 		const a = await login('staff', 'adit@x.id');
 		expect(a).toMatchObject({ kind: 'redirect', status: 303, location: '/admin' });
-		expect(a.cookies.jar.has(SESSION_COOKIE)).toBe(true);
+		expect(a.cookies.jar.has(STAFF_SESSION_COOKIE)).toBe(true);
+		expect(a.cookies.jar.has(SESSION_COOKIE)).toBe(false);
 		const o = await login('staff', 'olla@x.id');
 		expect(o).toMatchObject({ kind: 'redirect', location: '/owner' });
 	});
@@ -407,10 +411,68 @@ describe('portal login terpisah: pelanggan (/login) vs staf (/staff/login)', () 
 		});
 	});
 
+	it('sesi staf & pelanggan memakai cookie berbeda → login satu tidak menimpa yang lain', async () => {
+		await seedAccounts();
+		const jar = fakeCookies();
+		const tAdmin = await createSession(
+			db.select().from(users).where(eq(users.email, 'adit@x.id')).get()!.id,
+			jar as never,
+			'staff'
+		);
+		const tCust = await createSession(
+			db.select().from(users).where(eq(users.email, 'citra@x.id')).get()!.id,
+			jar as never,
+			'customer'
+		);
+		expect(jar.jar.get(STAFF_SESSION_COOKIE)?.value).toBe(tAdmin);
+		expect(jar.jar.get(SESSION_COOKIE)?.value).toBe(tCust);
+		expect((await validateSession(tAdmin))?.role).toBe('admin');
+		expect((await validateSession(tCust))?.role).toBe('konsumen');
+		// Logout staf hanya menghapus cookie staf
+		await destroySession(tAdmin, jar as never, 'staff');
+		expect(jar.jar.has(STAFF_SESSION_COOKIE)).toBe(false);
+		expect(jar.jar.has(SESSION_COOKIE)).toBe(true);
+	});
+
+	it('sesi staf berlaku 12 jam, sesi pelanggan mengikuti SESSION_DAYS (30 hari)', async () => {
+		const staffId = db
+			.insert(users)
+			.values({ name: 'Adit', email: 'adit2@x.id', passwordHash: 'x', role: 'admin' })
+			.returning({ id: users.id })
+			.get().id;
+		const tStaff = await createSession(staffId, fakeCookies() as never, 'staff');
+		const tCust = await createSession(userId, fakeCookies() as never, 'customer');
+		const exp = (t: string) =>
+			Date.parse(
+				db
+					.select()
+					.from(sessions)
+					.where(eq(sessions.id, sha256(t)))
+					.get()!.expiresAt
+			) - Date.now();
+		const H = 3_600_000;
+		expect(exp(tStaff)).toBeGreaterThan(11.9 * H);
+		expect(exp(tStaff)).toBeLessThanOrEqual(12 * H);
+		expect(exp(tCust)).toBeGreaterThan(29 * 24 * H);
+	});
+
+	it('portalOfPath: /admin /owner /staff → staf; selain itu → pelanggan', () => {
+		for (const p of ['/admin', '/admin/pesanan', '/owner/laporan', '/staff/login', '/staff/logout'])
+			expect(cookieNameOf(portalOfPath(p))).toBe(STAFF_SESSION_COOKIE);
+		for (const p of ['/', '/login', '/profil', '/produk/x', '/logout', '/administrasi'])
+			expect(cookieNameOf(portalOfPath(p))).toBe(SESSION_COOKIE);
+	});
+
 	it('loginPathFor: konsumen → /login, admin/owner → /staff/login', () => {
 		expect(loginPathFor('konsumen')).toBe('/login');
 		expect(loginPathFor('admin')).toBe('/staff/login');
 		expect(loginPathFor('owner')).toBe('/staff/login');
+	});
+
+	it('profilePathFor: staf punya halaman profil di areanya, pelanggan di /profil', () => {
+		expect(profilePathFor('admin')).toBe('/admin/profil');
+		expect(profilePathFor('owner')).toBe('/owner/profil');
+		expect(profilePathFor('konsumen')).toBe('/profil');
 	});
 
 	it('requireRole khusus staf tanpa login → /staff/login; yang menyertakan konsumen → /login', () => {

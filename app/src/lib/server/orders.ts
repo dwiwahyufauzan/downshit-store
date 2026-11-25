@@ -326,7 +326,8 @@ export async function expireUnpaidOrders(limit = 200): Promise<number> {
 	for (const { id } of due) {
 		try {
 			// pembayaran online yang lunas persis di batas waktu (notifikasi telat) jangan sampai dibatalkan
-			await syncPendingForOrder(id);
+			// Status transaksi online tak bisa dipastikan (Midtrans timeout/5xx): jangan batalkan, coba lagi di putaran cron berikutnya
+			if (!(await syncPendingForOrder(id))) continue;
 			await cancelOrder(id, { id: null, role: 'system' }, CANCEL_REASON_EXPIRED);
 			done++;
 		} catch (e) {

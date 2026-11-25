@@ -8,6 +8,7 @@ import Database from 'better-sqlite3';
 
 const dbPath = process.env.DATABASE_URL || 'downshit.db';
 const sqlite = new Database(dbPath);
+sqlite.pragma('busy_timeout = 5000'); // deploy berjalan saat aplikasi lama masih menulis
 sqlite.pragma('foreign_keys = ON');
 
 type Step = { table: string; column: string; ddl: string };
@@ -212,12 +213,19 @@ const run = sqlite.transaction(() => {
 
 	// BR-20: tidak ada baris pembayaran saat checkout. Buang baris 'menunggu' tanpa bukti (sisa checkout lama);
 	// baris pembayaran online (punya gateway_order_id) memang tanpa bukti, jangan dihapus.
-	const phantom = sqlite
-		.prepare(
-			`DELETE FROM payments WHERE proof_url IS NULL AND status = 'menunggu' AND gateway_order_id IS NULL`
-		)
-		.run().changes;
-	if (phantom > 0) console.log(`  - ${phantom} baris payments kosong (tanpa bukti) dihapus`);
+	// Sekali jalan (ditandai di settings): bila kelak ada alur bayar tanpa bukti & tanpa gateway (mis. COD),
+	// barisnya tidak boleh ikut terhapus diam-diam pada deploy berikutnya.
+	const PHANTOM_MARK = 'migr_phantom_payments_done';
+	const doneBefore = sqlite.prepare('SELECT 1 FROM settings WHERE key = ?').get(PHANTOM_MARK);
+	if (!doneBefore) {
+		const phantom = sqlite
+			.prepare(
+				`DELETE FROM payments WHERE proof_url IS NULL AND status = 'menunggu' AND gateway_order_id IS NULL`
+			)
+			.run().changes;
+		if (phantom > 0) console.log(`  - ${phantom} baris payments kosong (tanpa bukti) dihapus`);
+		sqlite.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run(PHANTOM_MARK, '1');
+	}
 
 	// Keranjang: satu baris per produk+ukuran / bundling+pilihan (gabungkan duplikat lama lalu pasang indeks unik)
 	const dupes = sqlite

@@ -1,7 +1,8 @@
-import { and, asc, count, desc, eq, exists, gt, gte, isNull, like, lte } from 'drizzle-orm';
+import { redirect } from '@sveltejs/kit';
+import { and, asc, count, desc, eq, exists, gt, gte, isNull, lte } from 'drizzle-orm';
 import { db } from '#lib/server/db';
 import { categories, productSizes, products } from '#lib/server/db/schema';
-import { escapeLike, pageParam, priceParam } from '#lib/server/sql';
+import { contains, pageParam, priceParam } from '#lib/server/sql';
 import { compareSizes, normalizeSize } from '#lib/utils/sizes';
 import { getProductStats, ratingScoreOf, soldOf } from '#lib/server/recommendations';
 import { CATALOG_PAGE_SIZE } from '#lib/constants';
@@ -23,7 +24,7 @@ export const load: PageServerLoad = async ({ url }) => {
 	const whereConditions = [eq(products.isActive, true), isNull(products.deletedAt)];
 
 	if (q) {
-		whereConditions.push(like(products.name, `%${escapeLike(q)}%`));
+		whereConditions.push(contains(products.name, q));
 	}
 	if (cat) {
 		whereConditions.push(eq(categories.slug, cat));
@@ -76,7 +77,8 @@ export const load: PageServerLoad = async ({ url }) => {
 			.from(products)
 			.leftJoin(categories, eq(categories.id, products.categoryId))
 			.where(where)
-			.orderBy(order)
+			// id sebagai penentu kedua: nilai urut yang sama tidak boleh membuat produk dobel/terlewat antar halaman
+			.orderBy(order, desc(products.id))
 			.limit(perPage)
 			.offset((page - 1) * perPage),
 		db
@@ -88,6 +90,13 @@ export const load: PageServerLoad = async ({ url }) => {
 	]);
 
 	const totalPages = Math.max(1, Math.ceil(total / perPage));
+	// ?page melebihi halaman terakhir (mis. filter dipersempit): arahkan ke halaman terakhir, bukan daftar kosong
+	if (page > totalPages) {
+		const u = new URL(url);
+		if (totalPages > 1) u.searchParams.set('page', String(totalPages));
+		else u.searchParams.delete('page');
+		throw redirect(303, u.pathname + u.search);
+	}
 
 	// Pilihan ukuran di filter: hanya ukuran yang stoknya masih ada pada produk aktif, urut S → XXL / angka naik
 	const sizeOptions = db
