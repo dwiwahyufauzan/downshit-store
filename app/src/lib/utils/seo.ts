@@ -20,6 +20,7 @@ export const ROBOTS_DISALLOW = [
 	'/owner',
 	'/internal',
 	'/login',
+	'/staff',
 	'/register',
 	'/logout',
 	'/keranjang',

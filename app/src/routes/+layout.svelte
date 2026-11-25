@@ -15,10 +15,14 @@
 	const isStaffArea = $derived(
 		page.url.pathname.startsWith('/admin') || page.url.pathname.startsWith('/owner')
 	);
-	const isAuthPage = $derived(page.url.pathname === '/login' || page.url.pathname === '/register');
+	const isStaffLogin = $derived(page.url.pathname === '/staff/login');
+	const isAuthPage = $derived(
+		page.url.pathname === '/login' || page.url.pathname === '/register' || isStaffLogin
+	);
 	// Halaman cetak (nota/label): kertas putih polos tanpa navbar, footer, maupun tema gelap staf
 	const isPrintView = $derived(page.route.id?.endsWith('/cetak') ?? false);
-	const staffTheme = $derived(isStaffArea && !isPrintView);
+	// Portal staf (login + admin + owner) memakai tema gelap
+	const staffTheme = $derived((isStaffArea && !isPrintView) || isStaffLogin);
 
 	// Tujuan navigasi yang belum selesai setelah SLOW_NAV_MS → bar progres + kerangka (skeleton)
 	$effect(() => {

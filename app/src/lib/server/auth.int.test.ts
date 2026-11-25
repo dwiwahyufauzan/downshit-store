@@ -50,6 +50,7 @@ import {
 	tooManyAttempts
 } from './rate-limit';
 import { requireRole, requireUser } from './guards';
+import { loginPathFor, performLogin, type Portal } from './login';
 
 function assertOwnDb() {
 	const rows = db.all<{ file: string }>(sql`select file from pragma_database_list`);
@@ -304,5 +305,125 @@ describe('guard & beranda per role', () => {
 		expect(homeFor('konsumen')).toBe('/produk');
 		expect(homeFor('admin')).toBe('/admin');
 		expect(homeFor('owner')).toBe('/owner');
+	});
+});
+
+describe('portal login terpisah: pelanggan (/login) vs staf (/staff/login)', () => {
+	const PASSWORD = 'Rahasia123';
+
+	async function seedAccounts() {
+		const passwordHash = await hashPassword(PASSWORD);
+		for (const [name, email, role] of [
+			['Citra', 'citra@x.id', 'konsumen'],
+			['Adit', 'adit@x.id', 'admin'],
+			['Olla', 'olla@x.id', 'owner']
+		] as const) {
+			db.insert(users).values({ name, email, passwordHash, role }).run();
+		}
+	}
+
+	async function login(portal: Portal, email: string, password = PASSWORD, next?: string) {
+		const cookies = fakeCookies();
+		const event = {
+			request: new Request('http://x/login', {
+				method: 'POST',
+				body: new URLSearchParams({ email, password })
+			}),
+			cookies,
+			url: new URL(`http://x/login${next ? `?next=${encodeURIComponent(next)}` : ''}`),
+			getClientAddress: () => '9.9.9.9'
+		};
+		try {
+			const res = await performLogin(event as never, portal);
+			return {
+				kind: 'fail' as const,
+				status: res.status,
+				data: res.data as Record<string, unknown>,
+				cookies
+			};
+		} catch (e) {
+			const r = e as { status?: number; location?: string };
+			if (r.location === undefined) throw e;
+			return { kind: 'redirect' as const, status: r.status, location: r.location, cookies };
+		}
+	}
+
+	it('pelanggan masuk lewat /login → sesi dibuat, diarahkan ke toko', async () => {
+		await seedAccounts();
+		const r = await login('customer', 'citra@x.id');
+		expect(r).toMatchObject({ kind: 'redirect', status: 303, location: '/produk' });
+		expect(r.cookies.jar.has(SESSION_COOKIE)).toBe(true);
+	});
+
+	it('akun staf di /login: ditolak (403) + petunjuk portal staf, TANPA sesi', async () => {
+		await seedAccounts();
+		for (const email of ['adit@x.id', 'olla@x.id']) {
+			const r = await login('customer', email);
+			expect(r).toMatchObject({ kind: 'fail', status: 403 });
+			expect((r as { data: Record<string, unknown> }).data.wrongPortal).toBe(true);
+			expect(r.cookies.jar.has(SESSION_COOKIE)).toBe(false);
+		}
+		expect(db.select().from(sessions).all()).toHaveLength(0);
+	});
+
+	it('admin & owner masuk lewat /staff/login → ke dashboard masing-masing', async () => {
+		await seedAccounts();
+		const a = await login('staff', 'adit@x.id');
+		expect(a).toMatchObject({ kind: 'redirect', status: 303, location: '/admin' });
+		expect(a.cookies.jar.has(SESSION_COOKIE)).toBe(true);
+		const o = await login('staff', 'olla@x.id');
+		expect(o).toMatchObject({ kind: 'redirect', location: '/owner' });
+	});
+
+	it('staf: ?next ke area staf dihormati, ke halaman toko diabaikan', async () => {
+		await seedAccounts();
+		const ok = await login('staff', 'adit@x.id', PASSWORD, '/admin/pesanan');
+		expect(ok).toMatchObject({ kind: 'redirect', location: '/admin/pesanan' });
+		const toko = await login('staff', 'adit@x.id', PASSWORD, '/pesanan');
+		expect(toko).toMatchObject({ kind: 'redirect', location: '/admin' });
+	});
+
+	it('akun pelanggan di /staff/login: pesan generik (tidak membocorkan akun), tanpa sesi, dihitung gagal', async () => {
+		await seedAccounts();
+		const r = await login('staff', 'citra@x.id');
+		expect(r).toMatchObject({ kind: 'fail', status: 400 });
+		expect((r as { data: Record<string, unknown> }).data).toMatchObject({
+			message: 'Email atau password tidak sesuai.'
+		});
+		expect((r as { data: Record<string, unknown> }).data.wrongPortal).toBeUndefined();
+		expect(r.cookies.jar.has(SESSION_COOKIE)).toBe(false);
+		expect(await tooManyAttempts('citra@x.id|9.9.9.9', 1)).toBe(true);
+	});
+
+	it('password salah tetap ditolak di kedua portal', async () => {
+		await seedAccounts();
+		expect(await login('customer', 'citra@x.id', 'salah-banget1')).toMatchObject({
+			kind: 'fail',
+			status: 400
+		});
+		expect(await login('staff', 'adit@x.id', 'salah-banget1')).toMatchObject({
+			kind: 'fail',
+			status: 400
+		});
+	});
+
+	it('loginPathFor: konsumen → /login, admin/owner → /staff/login', () => {
+		expect(loginPathFor('konsumen')).toBe('/login');
+		expect(loginPathFor('admin')).toBe('/staff/login');
+		expect(loginPathFor('owner')).toBe('/staff/login');
+	});
+
+	it('requireRole khusus staf tanpa login → /staff/login; yang menyertakan konsumen → /login', () => {
+		const nobody = { user: null, sessionId: null } as never;
+		const loc = (fn: () => unknown) => {
+			try {
+				fn();
+			} catch (e) {
+				return (e as { location?: string }).location;
+			}
+		};
+		expect(loc(() => requireRole(nobody, 'admin'))).toBe('/staff/login');
+		expect(loc(() => requireRole(nobody, 'admin', 'owner'))).toBe('/staff/login');
+		expect(loc(() => requireRole(nobody, 'konsumen'))).toBe('/login');
 	});
 });

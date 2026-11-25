@@ -44,10 +44,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.sessionId = token ?? null;
 
 	const user = event.locals.user;
-	const toLogin = () =>
-		redirect(303, `/login?next=${encodeURIComponent(event.url.pathname + event.url.search)}`);
-
 	const isStaffArea = ADMIN_AREA.test(path) || OWNER_AREA.test(path);
+	// Portal terpisah: area staf → /staff/login, halaman pelanggan → /login
+	const toLogin = () =>
+		redirect(
+			303,
+			`${isStaffArea ? '/staff/login' : '/login'}?next=${encodeURIComponent(event.url.pathname + event.url.search)}`
+		);
+
 	if (!user && (isStaffArea || NEEDS_LOGIN.some((r) => r.test(path)))) toLogin();
 	if (!user && CATALOG_REQUIRES_LOGIN === 'true' && CATALOG.some((r) => r.test(path))) toLogin();
 

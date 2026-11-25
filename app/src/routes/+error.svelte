@@ -18,6 +18,10 @@
 	const home = $derived(
 		user?.role === 'admin' ? '/admin' : user?.role === 'owner' ? '/owner' : '/'
 	);
+	// Area staf punya pintu masuk sendiri
+	const loginHref = $derived(
+		/^\/(admin|owner)(\/|$)/.test(page.url.pathname) ? '/staff/login' : '/login'
+	);
 </script>
 
 <svelte:head>
@@ -43,7 +47,7 @@
 		<div class="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
 			{#if status === 401 || (status === 403 && !user)}
 				<a
-					href="/login?next={encodeURIComponent(page.url.pathname + page.url.search)}"
+					href="{loginHref}?next={encodeURIComponent(page.url.pathname + page.url.search)}"
 					class="btn btn-primary"
 				>
 					Masuk

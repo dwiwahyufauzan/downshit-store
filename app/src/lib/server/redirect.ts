@@ -5,7 +5,7 @@
  * loop ke halaman autentikasi, dan hasil normalisasi yang berubah menjadi `//host`
  * (mis. `/.//evil.com` → pathname `//evil.com`).
  */
-const AUTH_PAGE = /^\/(login|register|logout)(\/|\?|#|$)/;
+const AUTH_PAGE = /^\/(login|register|logout|staff\/login)(\/|\?|#|$)/;
 
 export function safeNext(next: string | null | undefined, fallback: string): string {
 	if (!next) return fallback;

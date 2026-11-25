@@ -24,11 +24,8 @@
 		)
 	);
 
-	const demoAccounts = [
-		{ label: 'Owner', email: 'owner@downshit.local' },
-		{ label: 'Admin', email: 'admin@downshit.local' },
-		{ label: 'Konsumen', email: 'konsumen@downshit.local' }
-	];
+	// Akun staf (owner/admin) masuk lewat portal terpisah: /staff/login
+	const demoAccounts = [{ label: 'Konsumen', email: 'konsumen@downshit.local' }];
 
 	function fillDemo(email: string) {
 		const emailInput = document.getElementById('email') as HTMLInputElement;
@@ -98,6 +95,9 @@
 					role="alert"
 				>
 					{form.message}
+					{#if 'wrongPortal' in form && form.wrongPortal}
+						<a href="/staff/login" class="link ml-1 font-semibold">Buka portal staf</a>
+					{/if}
 				</div>
 			{/if}
 
@@ -168,7 +168,7 @@
 					<div class="border border-dashed border-line bg-mist/50 p-4">
 						<p class="eyebrow">Akun uji coba</p>
 						<p class="hint !mt-1">Password: Ganti-Password-123!</p>
-						<div class="mt-3 grid grid-cols-3 gap-2">
+						<div class="mt-3 grid grid-cols-1 gap-2">
 							{#each demoAccounts as acc (acc.email)}
 								<button type="button" class="btn btn-sm" onclick={() => fillDemo(acc.email)}>
 									{acc.label}
@@ -178,6 +178,11 @@
 					</div>
 				{/if}
 			</form>
+
+			<p class="mt-8 border-t border-line pt-5 text-xs text-smoke">
+				Admin atau owner toko?
+				<a href="/staff/login" class="link text-ink">Masuk lewat portal staf</a>
+			</p>
 		</div>
 	</div>
 </div>
