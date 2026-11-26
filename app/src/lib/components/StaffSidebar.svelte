@@ -4,6 +4,7 @@
 	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
 	import Shirt from '@lucide/svelte/icons/shirt';
 	import Tag from '@lucide/svelte/icons/tag';
+	import Ticket from '@lucide/svelte/icons/ticket';
 	import Layers from '@lucide/svelte/icons/layers';
 	import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
 	import Boxes from '@lucide/svelte/icons/boxes';
@@ -59,6 +60,13 @@
 						/>
 					{:else if i.href.includes('produk')}
 						<Shirt
+							size={16}
+							class="shrink-0 transition-colors {active
+								? 'text-paper'
+								: 'text-smoke group-hover:text-ink'}"
+						/>
+					{:else if i.href.includes('voucher')}
+						<Ticket
 							size={16}
 							class="shrink-0 transition-colors {active
 								? 'text-paper'

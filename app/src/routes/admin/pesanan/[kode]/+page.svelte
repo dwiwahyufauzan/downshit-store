@@ -393,8 +393,14 @@
 						<span>Subtotal Produk</span>
 						<span class="price text-ink">{formatRupiah(o.subtotal)}</span>
 					</div>
+					{#if o.discount > 0}
+						<div class="flex justify-between text-smoke">
+							<span>Voucher {o.voucherCode}</span>
+							<span class="price text-ink">−{formatRupiah(o.discount)}</span>
+						</div>
+					{/if}
 					<div class="flex justify-between text-smoke">
-						<span>Ongkos Kirim Flat</span>
+						<span>Ongkos Kirim{o.shippingService ? ` · ${o.shippingService}` : ' Flat'}</span>
 						<span class="price text-ink">{formatRupiah(o.shippingCost)}</span>
 					</div>
 					<div class="flex justify-between border-t border-ink pt-3 font-bold">

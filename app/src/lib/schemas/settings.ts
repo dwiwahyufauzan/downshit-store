@@ -17,6 +17,17 @@ export const settingsSchema = z
 			minMsg: 'Ongkir tidak boleh negatif',
 			maxMsg: 'Ongkir maksimal Rp 500.000'
 		}),
+		shippingOriginPostal: z
+			.string()
+			.trim()
+			.regex(/^([0-9]{5})?$/, 'Kode pos asal harus 5 digit angka (kosongkan untuk ongkir flat)')
+			.default(''),
+		shippingCouriers: z
+			.string()
+			.trim()
+			.toLowerCase()
+			.regex(/^[a-z0-9]+(,[a-z0-9]+)*$/, 'Kode kurir dipisah koma, mis. jne,jnt,sicepat')
+			.default('jne,jnt,sicepat,anteraja'),
 		bankName: textField('Nama bank', 2, 50),
 		bankNumber: z
 			.string({ error: 'Nomor rekening wajib diisi' })

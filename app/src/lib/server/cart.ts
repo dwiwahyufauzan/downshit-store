@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { db, transact, type Tx } from './db';
 import { bundleItems, bundles, cartItems, carts, products } from './db/schema';
 import { effectiveBundleStock } from '#lib/utils/bundle';
@@ -180,7 +180,11 @@ export async function addToCart(
 		}
 
 		if (existing) {
-			tx.update(cartItems).set({ quantity: target }).where(eq(cartItems.id, existing.id)).run();
+			// menambah lagi = jelas ingin membeli, jadi item yang tadinya tidak dicentang ikut dicentang
+			tx.update(cartItems)
+				.set({ quantity: target, isSelected: true })
+				.where(eq(cartItems.id, existing.id))
+				.run();
 		} else {
 			tx.insert(cartItems)
 				.values({
@@ -213,9 +217,11 @@ export async function getCartDetails(userId: number) {
 			bundleId: cartItems.bundleId,
 			quantity: cartItems.quantity,
 			size: cartItems.size,
+			isSelected: cartItems.isSelected,
 			prodName: products.name,
 			prodSlug: products.slug,
 			prodPrice: products.price,
+			prodWeight: products.weightGrams,
 			prodImage: products.imageUrl,
 			prodActive: products.isActive,
 			prodDeleted: products.deletedAt,
@@ -249,8 +255,28 @@ export async function getCartDetails(userId: number) {
 		}
 	}
 
+	// Berat satuan paket bundling = jumlah berat komponennya (dipakai menghitung ongkir)
+	const bundleWeight = new Map<number, number>();
+	const bundleIdsInCart = [...new Set(items.flatMap((i) => (i.bundleId ? [i.bundleId] : [])))];
+	if (bundleIdsInCart.length > 0) {
+		for (const r of db
+			.select({
+				bundleId: bundleItems.bundleId,
+				grams: sql<number>`SUM(${bundleItems.quantity} * ${products.weightGrams})`
+			})
+			.from(bundleItems)
+			.innerJoin(products, eq(products.id, bundleItems.productId))
+			.where(inArray(bundleItems.bundleId, bundleIdsInCart))
+			.groupBy(bundleItems.bundleId)
+			.all()) {
+			bundleWeight.set(r.bundleId, Number(r.grams));
+		}
+	}
+
 	const formattedItems = [];
 	let subtotal = 0;
+	let selectedUnits = 0;
+	let selectedWeight = 0;
 
 	for (const it of items) {
 		const isProduct = Boolean(it.productId);
@@ -268,7 +294,13 @@ export async function getCartDetails(userId: number) {
 		const problem: CartProblem =
 			!active || deleted ? 'nonaktif' : !sizeOk ? 'ukuran' : it.quantity > maxStock ? 'stok' : null;
 		const lineSubtotal = price * it.quantity;
-		if (!problem) subtotal += lineSubtotal; // hanya baris tanpa masalah yang ikut dihitung
+		// hanya baris yang dicentang DAN tanpa masalah yang ikut dihitung
+		const unitWeight = isProduct ? (it.prodWeight ?? 0) : (bundleWeight.get(refId) ?? 0);
+		if (it.isSelected && !problem) {
+			subtotal += lineSubtotal;
+			selectedUnits += it.quantity;
+			selectedWeight += unitWeight * it.quantity;
+		}
 
 		// Tampilan ukuran: produk → "L"; bundling → [{ name, size }]
 		const sizeParts = isProduct
@@ -291,6 +323,8 @@ export async function getCartDetails(userId: number) {
 			image,
 			quantity: it.quantity,
 			size: it.size,
+			isSelected: it.isSelected,
+			unitWeight,
 			sizeParts,
 			maxStock,
 			subtotal: lineSubtotal,
@@ -302,7 +336,12 @@ export async function getCartDetails(userId: number) {
 	return {
 		cartId: cart.id,
 		items: formattedItems,
+		/** Total baris yang dicentang & tanpa masalah (dasar checkout) */
 		subtotal,
+		/** Jumlah unit pada baris yang dicentang & tanpa masalah */
+		selectedUnits,
+		/** Berat total (gram) baris yang dicentang & tanpa masalah */
+		selectedWeight,
 		totalItems: formattedItems.reduce((acc, i) => acc + i.quantity, 0)
 	};
 }
@@ -338,6 +377,23 @@ export async function updateCartItemQuantity(userId: number, itemId: number, qty
 export async function removeCartItem(userId: number, itemId: number) {
 	const cart = await getOrCreateCart(userId);
 	await db.delete(cartItems).where(and(eq(cartItems.id, itemId), eq(cartItems.cartId, cart.id)));
+	return { ok: true as const };
+}
+
+/** Centang / lepas centang satu baris. Baris tak dikenal (atau milik orang lain) diabaikan. */
+export async function setCartItemSelected(userId: number, itemId: number, selected: boolean) {
+	const cart = await getOrCreateCart(userId);
+	await db
+		.update(cartItems)
+		.set({ isSelected: selected })
+		.where(and(eq(cartItems.id, itemId), eq(cartItems.cartId, cart.id)));
+	return { ok: true as const };
+}
+
+/** Centang / lepas centang semua baris sekaligus. */
+export async function setAllCartItemsSelected(userId: number, selected: boolean) {
+	const cart = await getOrCreateCart(userId);
+	await db.update(cartItems).set({ isSelected: selected }).where(eq(cartItems.cartId, cart.id));
 	return { ok: true as const };
 }
 

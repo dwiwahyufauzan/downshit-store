@@ -627,10 +627,12 @@ describe('halaman owner: load tidak crash pada input liar', () => {
 		const text = await res.text(); // text() membuang BOM
 		const lines = text.split('\r\n');
 		expect(lines[0]).toBe(
-			'"Kode Pesanan";"Tanggal (WIB)";"Pelanggan";"Status";"Subtotal (Pendapatan)";"Ongkir";"Total (Omzet)"'
+			'"Kode Pesanan";"Tanggal (WIB)";"Pelanggan";"Status";"Subtotal (Barang)";"Diskon Voucher";"Pendapatan (Subtotal - Diskon)";"Ongkir";"Total (Omzet)"'
 		);
 		expect(lines).toHaveLength(1 + 4 + 1); // header + 4 pesanan + TOTAL
-		expect(lines[lines.length - 1]).toBe('"TOTAL";"";"";"4 pesanan";1350000;45000;1395000');
+		expect(lines[lines.length - 1]).toBe(
+			'"TOTAL";"";"";"4 pesanan";1350000;0;1350000;45000;1395000'
+		);
 		// o5 30 Nov 23:59 WIB (16:59 UTC), o2 1 Nov 00:30 WIB (31 Okt 17:30 UTC)
 		expect(text).toContain('"T-O5";"2026-11-30 23:59"');
 		expect(text).toContain('"T-O2";"2026-11-01 00:30"');

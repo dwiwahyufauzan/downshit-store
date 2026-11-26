@@ -8,7 +8,7 @@ Metode online diproses Midtrans Snap dan **terkonfirmasi otomatis**: pesanan lan
 
 Belum punya akun? Aktifkan payment gateway tiruan yang meniru alur Midtrans Snap:
 
-1. Di `.env`: `PAYMENT_SIMULATOR="true"` (biarkan `MIDTRANS_SERVER_KEY` kosong), lalu `npm run db:migrate-sync`
+1. Di `.env`: `PAYMENT_SIMULATOR="true"` (biarkan `MIDTRANS_SERVER_KEY` kosong), lalu `npm run db:migrate`
    dan restart aplikasi.
 2. Admin → **Pengaturan → Metode Pembayaran** → centang E-wallet / QRIS / Virtual Account / Minimarket.
 3. Sebagai pelanggan, checkout dengan salah satu metode online. Kamu diarahkan ke halaman
@@ -31,7 +31,7 @@ Pasang Server Key Midtrans untuk pembayaran sungguhan.
    MIDTRANS_IS_PRODUCTION="false"             # "true" hanya dengan key produksi
    ORIGIN="https://domain-anda.com"           # dipakai untuk URL kembali dari halaman bayar
    ```
-4. Jalankan `npm run db:migrate-sync` (menambah kolom pembayaran online ke database lama), lalu restart aplikasi.
+4. Jalankan `npm run db:migrate` (menambah kolom pembayaran online ke database lama), lalu restart aplikasi.
 5. Di dashboard Midtrans → **Settings → Configuration → Payment Notification URL** isi:
    `https://domain-anda.com/api/midtrans/notification` (harus URL publik; saat uji lokal pakai tunnel).
 6. Di **Settings → Snap Preferences / Payment** pastikan saluran yang diinginkan sudah aktif

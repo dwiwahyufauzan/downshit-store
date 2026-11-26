@@ -187,6 +187,52 @@
 		</section>
 
 		<section class="panel space-y-4">
+			<h2 class="panel-title border-b border-line pb-3">
+				Ongkir Otomatis (per tujuan &amp; berat)
+			</h2>
+			<p class="text-sm text-smoke">
+				Pelanggan memilih kurir dan layanan di checkout; ongkir dihitung dari kode pos tujuan dan
+				berat pesanan (Biteship). Kosongkan kode pos asal untuk memakai ongkir flat di bawah.
+				{#if data.shippingApi}
+					<strong class="text-ink">API key terpasang.</strong>
+				{:else}
+					<strong class="text-ink">Belum aktif:</strong> isi <code>BITESHIP_API_KEY</code> di .env server.
+				{/if}
+			</p>
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+				<div>
+					<label for="shippingOriginPostal" class="label">Kode pos asal (toko/gudang)</label>
+					<input
+						id="shippingOriginPostal"
+						name="shippingOriginPostal"
+						type="text"
+						inputmode="numeric"
+						maxlength="5"
+						placeholder="41211"
+						value={s.shippingOriginPostal ?? ''}
+					/>
+					{#if form?.errors?.shippingOriginPostal}
+						<p class="field-error">{form.errors.shippingOriginPostal[0]}</p>
+					{/if}
+				</div>
+				<div>
+					<label for="shippingCouriers" class="label">Kurir yang ditawarkan</label>
+					<input
+						id="shippingCouriers"
+						name="shippingCouriers"
+						type="text"
+						placeholder="jne,jnt,sicepat,anteraja"
+						value={s.shippingCouriers ?? 'jne,jnt,sicepat,anteraja'}
+					/>
+					<p class="hint">Kode kurir Biteship, dipisah koma.</p>
+					{#if form?.errors?.shippingCouriers}
+						<p class="field-error">{form.errors.shippingCouriers[0]}</p>
+					{/if}
+				</div>
+			</div>
+		</section>
+
+		<section class="panel space-y-4">
 			<h2 class="panel-title border-b border-line pb-3">Biaya Ongkir &amp; Parameter Pesanan</h2>
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
 				<div>

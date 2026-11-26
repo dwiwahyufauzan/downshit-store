@@ -27,7 +27,16 @@ export const users = sqliteTable(
 		name: text('name').notNull(),
 		email: text('email').notNull(),
 		phone: text('phone'),
+		// Teks alamat lengkap gabungan (tampilan admin / data lama); sumber utamanya kolom address_* di bawah
 		address: text('address'),
+		addressProvince: text('address_province'),
+		addressCity: text('address_city'),
+		addressDistrict: text('address_district'),
+		addressVillage: text('address_village'),
+		addressDetail: text('address_detail'),
+		addressPostalCode: text('address_postal_code'),
+		// Kode desa/kelurahan (Kemendagri, mis. 32.13.01.2001): memuat kode kecamatan, kota, dan provinsinya
+		addressVillageCode: text('address_village_code'),
 		passwordHash: text('password_hash').notNull(),
 		role: text('role', { enum: ['owner', 'admin', 'konsumen'] })
 			.notNull()
@@ -55,6 +64,22 @@ export const sessions = sqliteTable(
 	(t) => [index('idx_sessions_user').on(t.userId)]
 );
 
+/** Token lupa password (hanya hash-nya yang disimpan); sekali pakai dan kedaluwarsa. */
+export const passwordResets = sqliteTable(
+	'password_resets',
+	{
+		id: id(),
+		userId: integer('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		tokenHash: text('token_hash').notNull(), // sha256(token)
+		expiresAt: text('expires_at').notNull(),
+		usedAt: text('used_at'),
+		createdAt: createdAt()
+	},
+	(t) => [uniqueIndex('uq_pwreset_token').on(t.tokenHash), index('idx_pwreset_user').on(t.userId)]
+);
+
 /* ---------- 2. Katalog (kategori, produk, bundling) ---------- */
 export const categories = sqliteTable(
 	'categories',
@@ -78,6 +103,8 @@ export const products = sqliteTable(
 		description: text('description'),
 		price: integer('price').notNull(),
 		stock: integer('stock').notNull().default(0),
+		// Berat satuan (gram) untuk hitung ongkir; paket bundling = jumlah berat komponennya
+		weightGrams: integer('weight_grams').notNull().default(300),
 		imageUrl: text('image_url'),
 		isBundleable: integer('is_bundleable', { mode: 'boolean' }).notNull().default(true),
 		isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
@@ -186,7 +213,9 @@ export const cartItems = sqliteTable(
 		bundleId: integer('bundle_id').references(() => bundles.id, { onDelete: 'cascade' }),
 		quantity: integer('quantity').notNull().default(1),
 		// Produk: label ukuran ('' = tanpa ukuran). Bundling: pilihan ukuran komponen, mis. "12:L|15:M".
-		size: text('size').notNull().default('')
+		size: text('size').notNull().default(''),
+		// Dicentang di halaman keranjang = ikut checkout. Yang tidak dicentang tetap tersimpan di keranjang.
+		isSelected: integer('is_selected', { mode: 'boolean' }).notNull().default(true)
 	},
 	(t) => [
 		index('idx_ci_cart').on(t.cartId),
@@ -228,10 +257,18 @@ export const orders = sqliteTable(
 		status: text('status', { enum: ORDER_STATUS }).notNull().default('menunggu_pembayaran'),
 		subtotal: integer('subtotal').notNull(),
 		shippingCost: integer('shipping_cost').notNull().default(0),
+		// Potongan voucher (Rp). `subtotal` tetap harga kotor barang; total = subtotal - discount + shippingCost
+		discount: integer('discount').notNull().default(0),
+		voucherCode: text('voucher_code'),
 		total: integer('total').notNull(),
 		recipientName: text('recipient_name').notNull(),
 		recipientPhone: text('recipient_phone').notNull(),
 		shippingAddress: text('shipping_address').notNull(),
+		// Jejak tujuan & layanan kirim yang dipilih (null pada pesanan lama / ongkir flat)
+		shippingPostalCode: text('shipping_postal_code'),
+		shippingVillageCode: text('shipping_village_code'),
+		shippingService: text('shipping_service'), // mis. "JNE Reguler"
+		shippingEtd: text('shipping_etd'), // mis. "2-3 hari"
 		notes: text('notes'),
 		expiresAt: text('expires_at'),
 		cancelReason: text('cancel_reason'),
@@ -479,4 +516,98 @@ export const loginAttempts = sqliteTable(
 		createdAt: createdAt()
 	},
 	(t) => [index('idx_la_ident').on(t.identifier, t.createdAt)]
+);
+
+/** Hitungan rate limit (jendela geser) yang dibagi antar-proses/instance yang memakai database yang sama. */
+export const rateHits = sqliteTable(
+	'rate_hits',
+	{
+		id: id(),
+		key: text('key').notNull(),
+		at: integer('at').notNull() // epoch ms
+	},
+	(t) => [index('idx_rate_key_at').on(t.key, t.at)]
+);
+
+/** Foto yang dilampirkan pembeli pada ulasan (maks. 3 per ulasan; dicek di aplikasi). */
+export const reviewImages = sqliteTable(
+	'review_images',
+	{
+		id: id(),
+		reviewId: integer('review_id')
+			.notNull()
+			.references(() => reviews.id, { onDelete: 'cascade' }),
+		imageUrl: text('image_url').notNull(),
+		sortOrder: integer('sort_order').notNull().default(0),
+		createdAt: createdAt()
+	},
+	(t) => [index('idx_review_images_review').on(t.reviewId)]
+);
+
+/** Permintaan "kabari saya saat stok tersedia lagi" (size '' = produk tanpa ukuran / seluruh produk). */
+export const stockSubscriptions = sqliteTable(
+	'stock_subscriptions',
+	{
+		id: id(),
+		userId: integer('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		productId: integer('product_id')
+			.notNull()
+			.references(() => products.id, { onDelete: 'cascade' }),
+		size: text('size').notNull().default(''),
+		notifiedAt: text('notified_at'), // null = masih menunggu
+		createdAt: createdAt()
+	},
+	(t) => [
+		uniqueIndex('uq_stock_sub').on(t.userId, t.productId, t.size),
+		index('idx_stock_sub_pending').on(t.notifiedAt, t.productId)
+	]
+);
+
+/** Voucher/promo diskon. `usedCount` naik saat pesanan dibuat dan turun lagi bila pesanan dibatalkan. */
+export const vouchers = sqliteTable(
+	'vouchers',
+	{
+		id: id(),
+		code: text('code').notNull(), // huruf besar, mis. HEMAT10
+		description: text('description'),
+		type: text('type', { enum: ['percent', 'fixed'] }).notNull(),
+		value: integer('value').notNull(), // percent: 1–100 · fixed: Rp
+		minSubtotal: integer('min_subtotal').notNull().default(0),
+		maxDiscount: integer('max_discount'), // batas potongan untuk percent (null = tanpa batas)
+		startsAt: text('starts_at'),
+		endsAt: text('ends_at'),
+		usageLimit: integer('usage_limit'), // total pemakaian (null = tanpa batas)
+		usedCount: integer('used_count').notNull().default(0),
+		perUserLimit: integer('per_user_limit').notNull().default(1),
+		isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+		// Tampil sebagai banner promo di beranda pelanggan (voucher privat/tertarget: biarkan mati)
+		showOnHome: integer('show_on_home', { mode: 'boolean' }).notNull().default(false),
+		createdAt: createdAt(),
+		updatedAt: updatedAt()
+	},
+	(t) => [uniqueIndex('uq_vouchers_code').on(t.code)]
+);
+
+/** Satu baris per pesanan yang memakai voucher (dihapus bila pesanan dibatalkan agar kuota kembali). */
+export const voucherRedemptions = sqliteTable(
+	'voucher_redemptions',
+	{
+		id: id(),
+		voucherId: integer('voucher_id')
+			.notNull()
+			.references(() => vouchers.id, { onDelete: 'restrict' }),
+		userId: integer('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		orderId: integer('order_id')
+			.notNull()
+			.references(() => orders.id, { onDelete: 'cascade' }),
+		createdAt: createdAt()
+	},
+	(t) => [
+		uniqueIndex('uq_redemption_order').on(t.orderId),
+		index('idx_redemption_voucher_user').on(t.voucherId, t.userId)
+	]
 );

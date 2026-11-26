@@ -2,10 +2,11 @@
 	import Alert from '#lib/components/Alert.svelte';
 	import Breadcrumb from '#lib/components/Breadcrumb.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
+	import OrderItemsSection from '#lib/components/OrderItemsSection.svelte';
+	import OrderReviewsSection from '#lib/components/OrderReviewsSection.svelte';
+	import ShipmentPanel from '#lib/components/ShipmentPanel.svelte';
 	import StatusBadge from '#lib/components/StatusBadge.svelte';
 	import PaymentMethodPicker from '#lib/components/PaymentMethodPicker.svelte';
-	import StarInput from '#lib/components/StarInput.svelte';
-	import Stars from '#lib/components/Stars.svelte';
 	import {
 		GATEWAY_TYPE_LABEL,
 		PAYMENT_STATUS_BADGE,
@@ -15,7 +16,6 @@
 	} from '#lib/constants';
 	import { invalidateAll } from '$app/navigation';
 	import { formatDate, formatRupiah } from '#lib/utils/format';
-	import { trackingPageFor } from '#lib/utils/courier';
 	import { cancelReasonText } from '#lib/utils/wa-messages';
 	import MessageCircle from '@lucide/svelte/icons/message-circle';
 	import Ban from '@lucide/svelte/icons/ban';
@@ -49,7 +49,6 @@
 		await invalidateAll();
 		checking = false;
 	}
-	const trackUrl = $derived(trackingPageFor(data.shipment?.courier));
 	const cancelReason = $derived(cancelReasonText(o.cancelReason));
 
 	function copyToClipboard(text: string, key: string) {
@@ -472,114 +471,9 @@
 				</section>
 			{/if}
 
-			<!-- Item pesanan -->
-			<section>
-				<h2 class="panel-title mb-4">Item pesanan</h2>
-				<ul class="divide-y divide-line border-y border-line">
-					{#each data.items as item (item.id)}
-						<li class="py-5">
-							<div class="flex items-start justify-between gap-4">
-								<div class="min-w-0">
-									<p class="eyebrow">{item.itemType === 'product' ? 'Produk' : 'Paket bundling'}</p>
-									<h3 class="mt-1 text-sm font-bold tracking-[0.06em] uppercase">
-										{item.itemName}
-									</h3>
-									<p class="mt-1 text-xs text-smoke">
-										{item.quantity} &times; {formatRupiah(item.unitPrice)}
-									</p>
-									{#if item.size && item.itemType === 'product'}
-										<p class="mt-1 text-xs font-semibold tracking-[0.08em] uppercase">
-											Ukuran {item.size}
-										</p>
-									{/if}
-								</div>
-								<p class="price shrink-0 text-sm">{formatRupiah(item.subtotal)}</p>
-							</div>
+			<OrderItemsSection order={o} items={data.items} />
 
-							{#if item.components && item.components.length > 0}
-								<div class="mt-3 border-l-2 border-ink bg-mist px-4 py-3">
-									<p class="eyebrow">Isi paket</p>
-									<ul class="mt-2 space-y-1">
-										{#each item.components as comp (comp.id)}
-											<li class="flex items-center justify-between gap-4 text-xs text-smoke">
-												<span>
-													{comp.productName}
-													{#if comp.size}<strong class="text-ink">({comp.size})</strong>{/if}
-													&times; {comp.quantity}
-												</span>
-												<span class="tabular-nums">
-													{formatRupiah(comp.productPrice * comp.quantity)}
-												</span>
-											</li>
-										{/each}
-									</ul>
-								</div>
-							{/if}
-						</li>
-					{/each}
-				</ul>
-
-				<dl class="mt-5 ml-auto max-w-sm space-y-3 text-sm">
-					<div class="flex items-center justify-between gap-4">
-						<dt class="text-smoke">Subtotal item</dt>
-						<dd class="price">{formatRupiah(o.subtotal)}</dd>
-					</div>
-					<div class="flex items-center justify-between gap-4">
-						<dt class="text-smoke">Ongkos kirim</dt>
-						<dd class="price">{formatRupiah(o.shippingCost)}</dd>
-					</div>
-					<div class="divider flex items-baseline justify-between gap-4 pt-3">
-						<dt class="text-xs font-bold tracking-[0.14em] uppercase">Total pembayaran</dt>
-						<dd class="price text-xl">{formatRupiah(o.total)}</dd>
-					</div>
-				</dl>
-			</section>
-
-			<!-- Ulasan: hanya setelah pesanan selesai -->
-			{#if data.reviewables.length > 0}
-				<section id="ulasan" class="scroll-mt-24">
-					<h2 class="panel-title mb-4">Beri ulasan</h2>
-					<ul class="divide-y divide-line border-y border-line">
-						{#each data.reviewables as rp (rp.productId)}
-							<li class="py-5">
-								<div class="flex items-start justify-between gap-4">
-									<a
-										href="/produk/{rp.slug}"
-										class="text-sm font-bold tracking-[0.06em] uppercase hover:underline"
-									>
-										{rp.name}
-									</a>
-									{#if rp.review}<Stars value={rp.review.rating} size={14} />{/if}
-								</div>
-
-								{#if rp.review}
-									<p class="mt-2 text-xs text-smoke">
-										Ulasanmu &middot; {formatDate(rp.review.createdAt)}
-									</p>
-									{#if rp.review.comment}
-										<p class="mt-1 text-sm leading-relaxed">{rp.review.comment}</p>
-									{/if}
-								{:else}
-									<form method="POST" action="?/ulas" class="mt-4 space-y-4">
-										<input type="hidden" name="productId" value={rp.productId} />
-										<StarInput name="rating" legend="Rating" />
-										<div>
-											<label for="comment-{rp.productId}" class="label">Ulasan (opsional)</label>
-											<textarea
-												id="comment-{rp.productId}"
-												name="comment"
-												rows="3"
-												maxlength="500"
-												placeholder="Ceritakan bahan, ukuran, atau kualitasnya…"></textarea>
-										</div>
-										<button type="submit" class="btn btn-primary btn-tool">Kirim ulasan</button>
-									</form>
-								{/if}
-							</li>
-						{/each}
-					</ul>
-				</section>
-			{/if}
+			<OrderReviewsSection reviewables={data.reviewables} />
 		</div>
 
 		<!-- Kolom samping -->
@@ -608,70 +502,7 @@
 				</dl>
 			</section>
 
-			{#if data.shipment && data.shipment.status !== 'belum_dikirim' && data.shipment.trackingNumber}
-				<section class="panel">
-					<h2 class="panel-title">Pengiriman</h2>
-					<dl class="mt-5 space-y-4 text-sm">
-						<div>
-							<dt class="eyebrow">Ekspedisi</dt>
-							<dd class="mt-1 font-semibold uppercase">{data.shipment.courier ?? '-'}</dd>
-						</div>
-						<div>
-							<dt class="eyebrow">Nomor resi</dt>
-							<dd class="mt-1 flex flex-wrap items-center justify-between gap-3">
-								<span class="text-base font-bold tracking-[0.04em] tabular-nums">
-									{data.shipment.trackingNumber ?? '-'}
-								</span>
-								{#if data.shipment.trackingNumber}
-									<button
-										type="button"
-										onclick={() => copyToClipboard(data.shipment?.trackingNumber ?? '', 'resi')}
-										class="btn btn-sm"
-									>
-										{#if copied === 'resi'}
-											<Check size={14} /> Tersalin
-										{:else}
-											<Copy size={14} /> Salin resi
-										{/if}
-									</button>
-								{/if}
-							</dd>
-							{#if trackUrl}
-								<dd class="mt-3">
-									<a
-										href={trackUrl}
-										target="_blank"
-										rel="noopener noreferrer"
-										class="btn btn-sm btn-block"
-									>
-										<ExternalLink size={14} /> Lacak di situs {data.shipment.courier}
-									</a>
-									<p class="hint">
-										Salin nomor resi di atas, lalu tempel di halaman pelacakan kurir.
-									</p>
-								</dd>
-							{/if}
-						</div>
-						{#if data.shipment.shippedAt}
-							<div>
-								<dt class="eyebrow">Dikirim</dt>
-								<dd class="mt-1 text-smoke">{formatDate(data.shipment.shippedAt)}</dd>
-							</div>
-						{/if}
-						{#if data.shipment.deliveredAt}
-							<div>
-								<dt class="eyebrow">Diterima</dt>
-								<dd class="mt-1 text-smoke">{formatDate(data.shipment.deliveredAt)}</dd>
-							</div>
-						{/if}
-					</dl>
-				</section>
-			{:else}
-				<section class="panel">
-					<h2 class="panel-title">Pengiriman</h2>
-					<p class="mt-4 text-sm text-smoke">Informasi pengiriman belum tersedia.</p>
-				</section>
-			{/if}
+			<ShipmentPanel shipment={data.shipment} />
 
 			<section class="panel">
 				<h2 class="panel-title">Pembayaran</h2>

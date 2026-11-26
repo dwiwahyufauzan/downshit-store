@@ -1,6 +1,15 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { db, transact, type Tx } from './db';
-import { orderItemComponents, orderItems, orders, products, reviews, users } from './db/schema';
+import {
+	orderItemComponents,
+	orderItems,
+	orders,
+	products,
+	reviewImages,
+	reviews,
+	users
+} from './db/schema';
+import { thumbOf } from '#lib/utils/image';
 import { logActivity } from './activity';
 
 type Exec = typeof db | Tx;
@@ -9,13 +18,39 @@ type Exec = typeof db | Tx;
 export class ReviewError extends Error {}
 
 export const REVIEW_MAX_COMMENT = 500;
+/** Foto per ulasan */
+export const REVIEW_MAX_PHOTOS = 3;
+
+export type ReviewPhoto = { url: string; thumbUrl: string };
+
+/** Foto ulasan per id ulasan (urut sesuai unggahan). */
+export function photosOf(ex: Exec, reviewIds: number[]): Map<number, ReviewPhoto[]> {
+	const out = new Map<number, ReviewPhoto[]>();
+	if (reviewIds.length === 0) return out;
+	for (const r of ex
+		.select()
+		.from(reviewImages)
+		.where(inArray(reviewImages.reviewId, reviewIds))
+		.orderBy(asc(reviewImages.sortOrder), asc(reviewImages.id))
+		.all()) {
+		const list = out.get(r.reviewId) ?? [];
+		list.push({ url: r.imageUrl, thumbUrl: thumbOf(r.imageUrl) ?? r.imageUrl });
+		out.set(r.reviewId, list);
+	}
+	return out;
+}
 
 export type ReviewableProduct = {
 	productId: number;
 	name: string;
 	slug: string;
 	imageUrl: string | null;
-	review: { rating: number; comment: string | null; createdAt: string } | null;
+	review: {
+		rating: number;
+		comment: string | null;
+		createdAt: string;
+		photos: ReviewPhoto[];
+	} | null;
 };
 
 /** Produk dalam satu pesanan (produk langsung + komponen bundling), unik per produk. */
@@ -53,6 +88,7 @@ export function getOrderReviewables(ex: Exec, orderId: number): ReviewableProduc
 	const mine = new Map(
 		ex
 			.select({
+				id: reviews.id,
 				productId: reviews.productId,
 				rating: reviews.rating,
 				comment: reviews.comment,
@@ -63,11 +99,22 @@ export function getOrderReviewables(ex: Exec, orderId: number): ReviewableProduc
 			.all()
 			.map((r) => [r.productId, r])
 	);
+	const photos = photosOf(
+		ex,
+		[...mine.values()].map((r) => r.id)
+	);
 	return orderProducts(ex, orderId).map((p) => {
 		const r = mine.get(p.productId);
 		return {
 			...p,
-			review: r ? { rating: r.rating, comment: r.comment, createdAt: r.createdAt } : null
+			review: r
+				? {
+						rating: r.rating,
+						comment: r.comment,
+						createdAt: r.createdAt,
+						photos: photos.get(r.id) ?? []
+					}
+				: null
 		};
 	});
 }
@@ -82,10 +129,16 @@ export async function createReview(input: {
 	productId: number;
 	rating: number;
 	comment?: string | null;
+	/** URL foto yang SUDAH tersimpan (saveImage 'reviews'); maks. REVIEW_MAX_PHOTOS */
+	images?: string[];
 }) {
 	const { userId, orderCode, productId, rating } = input;
 	if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
 		throw new ReviewError('Rating harus 1 sampai 5 bintang.');
+	}
+	const images = input.images ?? [];
+	if (images.length > REVIEW_MAX_PHOTOS) {
+		throw new ReviewError(`Maksimal ${REVIEW_MAX_PHOTOS} foto per ulasan.`);
 	}
 	const comment = (input.comment ?? '').trim();
 	if (comment.length > REVIEW_MAX_COMMENT) {
@@ -113,6 +166,9 @@ export async function createReview(input: {
 			.values({ productId, userId, orderId: order.id, rating, comment: comment || null })
 			.returning({ id: reviews.id })
 			.get();
+		images.forEach((imageUrl, i) =>
+			tx.insert(reviewImages).values({ reviewId: row.id, imageUrl, sortOrder: i }).run()
+		);
 		logActivity(
 			userId,
 			'review.create',
@@ -162,7 +218,7 @@ export function maskName(name: string): string {
 }
 
 export function listReviews(ex: Exec, productId: number, limit: number, offset = 0) {
-	return ex
+	const rows = ex
 		.select({
 			id: reviews.id,
 			rating: reviews.rating,
@@ -176,6 +232,10 @@ export function listReviews(ex: Exec, productId: number, limit: number, offset =
 		.orderBy(desc(reviews.createdAt), desc(reviews.id))
 		.limit(limit)
 		.offset(offset)
-		.all()
-		.map((r) => ({ ...r, name: maskName(r.name) }));
+		.all();
+	const photos = photosOf(
+		ex,
+		rows.map((r) => r.id)
+	);
+	return rows.map((r) => ({ ...r, name: maskName(r.name), photos: photos.get(r.id) ?? [] }));
 }

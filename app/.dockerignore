@@ -10,3 +10,6 @@ uploads*
 *.db-shm
 tests/.tmp*
 .git
+backups
+.e2e
+e2e

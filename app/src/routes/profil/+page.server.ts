@@ -12,6 +12,10 @@ import {
 	verifyPassword
 } from '#lib/server/auth';
 import { changePasswordSchema, profileSchema } from '#lib/schemas/auth';
+import { partsOf } from '#lib/schemas/address';
+import { userAddressColumns } from '#lib/server/user-address';
+import { resolveVillageCode } from '#lib/server/wilayah';
+import { addressColumns } from '#lib/utils/address';
 import { rateLimit } from '#lib/server/rate-limit';
 import { logActivity } from '#lib/server/activity';
 import type { Actions, PageServerLoad } from './$types';
@@ -25,7 +29,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			name: users.name,
 			email: users.email,
 			phone: users.phone,
-			address: users.address,
+			...userAddressColumns,
 			role: users.role,
 			mustChangePassword: users.mustChangePassword,
 			createdAt: users.createdAt
@@ -35,7 +39,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.limit(1);
 
 	return {
-		profile: userData
+		profile: {
+			...userData,
+			// alamat lama (satu kolom teks) ditampilkan di kolom detail agar tidak hilang saat dilengkapi
+			addressDetail: userData.addressDetail ?? userData.address ?? ''
+		}
 	};
 };
 
@@ -52,14 +60,15 @@ export const actions: Actions = {
 			});
 		}
 
-		const { name, phone, address } = parsed.data;
+		const { name, phone } = parsed.data;
+		const address = partsOf(parsed.data);
 
 		await db
 			.update(users)
 			.set({
 				name,
 				phone: phone || null,
-				address: address || null,
+				...addressColumns(address, address ? await resolveVillageCode(address) : null),
 				updatedAt: new Date().toISOString()
 			})
 			.where(eq(users.id, sessionUser.id));

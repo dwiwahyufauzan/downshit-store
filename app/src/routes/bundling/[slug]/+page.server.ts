@@ -2,11 +2,9 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '#lib/server/db';
-import { bundleItems, bundles, products } from '#lib/server/db/schema';
+import { bundles } from '#lib/server/db/schema';
 import { addToCart } from '#lib/server/cart';
-import { getSettings } from '#lib/server/settings';
-import { getSizes } from '#lib/server/sizes';
-import { effectiveBundleStock } from '#lib/utils/bundle';
+import { getBundleDetail } from '#lib/server/catalog';
 import type { Actions, PageServerLoad } from './$types';
 
 const addSchema = z.object({
@@ -14,67 +12,10 @@ const addSchema = z.object({
 });
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-	const slug = params.slug;
+	const detail = await getBundleDetail(params.slug);
+	if (!detail) throw error(404, 'Paket bundling tidak ditemukan');
 
-	const [b] = await db
-		.select({
-			id: bundles.id,
-			name: bundles.name,
-			slug: bundles.slug,
-			price: bundles.price,
-			stock: bundles.stock,
-			description: bundles.description,
-			imageUrl: bundles.imageUrl,
-			isActive: bundles.isActive
-		})
-		.from(bundles)
-		.where(and(eq(bundles.slug, slug), eq(bundles.isActive, true), isNull(bundles.deletedAt)))
-		.limit(1);
-
-	if (!b) {
-		throw error(404, 'Paket bundling tidak ditemukan');
-	}
-
-	const comps = await db
-		.select({
-			id: bundleItems.id,
-			quantity: bundleItems.quantity,
-			productId: products.id,
-			productName: products.name,
-			productSlug: products.slug,
-			productPrice: products.price,
-			productStock: products.stock,
-			productImage: products.imageUrl,
-			productActive: products.isActive
-		})
-		.from(bundleItems)
-		.innerJoin(products, eq(products.id, bundleItems.productId))
-		.where(eq(bundleItems.bundleId, b.id));
-
-	const normalPrice = comps.reduce((acc, c) => acc + (c.productPrice ?? 0) * c.quantity, 0);
-	const savings = Math.max(0, normalPrice - b.price);
-
-	const stockComponents = comps.map((c) => ({
-		stock: c.productActive ? c.productStock : 0,
-		qty: c.quantity
-	}));
-	const effStock = effectiveBundleStock(b.stock, stockComponents);
-
-	const { lowStock } = await getSettings();
-
-	// Komponen ber-ukuran: pelanggan wajib memilih ukuran tiap komponen (stok per ukuran)
-	const components = comps.map((c) => ({ ...c, sizes: getSizes(db, c.productId) }));
-
-	return {
-		bundle: b,
-		lowStock,
-		components,
-		normalPrice,
-		savings,
-		effectiveStock: effStock,
-		isKonsumen: locals.user?.role === 'konsumen',
-		user: locals.user
-	};
+	return { ...detail, isKonsumen: locals.user?.role === 'konsumen', user: locals.user };
 };
 
 export const actions: Actions = {

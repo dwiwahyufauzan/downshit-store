@@ -38,3 +38,5 @@ tests/.tmp-*
 
 # Biner pihak ketiga (Cloudflare Tunnel) — pasang terpisah, jangan di-commit
 /cloudflared
+/backups
+/.e2e

@@ -4,12 +4,14 @@
 	import { thumbOf } from '#lib/utils/image';
 	import Alert from '#lib/components/Alert.svelte';
 	import Breadcrumb from '#lib/components/Breadcrumb.svelte';
+	import ProductReviews from '#lib/components/ProductReviews.svelte';
 	import SizePicker from '#lib/components/SizePicker.svelte';
 	import Seo from '#lib/components/Seo.svelte';
 	import ProductShelf from '#lib/components/ProductShelf.svelte';
 	import Stars from '#lib/components/Stars.svelte';
 	import { formatRupiah } from '#lib/utils/format';
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
+	import Bell from '@lucide/svelte/icons/bell';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Heart from '@lucide/svelte/icons/heart';
@@ -25,6 +27,10 @@
 	let size = $state('');
 	let adding = $state(false);
 	let savingFavorite = $state(false);
+	let alerting = $state(false);
+	const soldOutSizes = $derived(data.sizes.filter((x) => x.stock <= 0));
+	// svelte-ignore state_referenced_locally
+	let alertSize = $state(data.sizes.find((x) => x.stock <= 0)?.label ?? '');
 
 	// Komponen halaman dipakai ulang saat pindah produk (mis. "Produk serupa"): pilihan lama tidak boleh terbawa
 	$effect(() => {
@@ -225,6 +231,30 @@
 						<p class="mt-1 text-xs text-smoke">Pantau terus toko kami atau pilih produk lainnya.</p>
 						<a href="/produk" class="btn btn-sm mt-4">Lihat produk lain</a>
 					</div>
+					{#if data.isKonsumen && data.alertsEnabled}
+						<form
+							method="POST"
+							action="?/kabari"
+							class="mt-3"
+							use:enhance={enhanceInPlace((b) => (alerting = b))}
+						>
+							<input type="hidden" name="size" value="" />
+							{#if data.alertSizes.includes('')}
+								<input type="hidden" name="batal" value="1" />
+								<button type="submit" disabled={alerting} class="btn btn-lg btn-block">
+									<Bell size={16} /> Pengingat aktif · Batalkan
+								</button>
+							{:else}
+								<button type="submit" disabled={alerting} class="btn btn-primary btn-lg btn-block">
+									<Bell size={16} /> Kabari saya saat tersedia
+								</button>
+							{/if}
+						</form>
+					{:else if !data.user && data.alertsEnabled}
+						<a href="/login?next=/produk/{p.slug}" class="btn btn-lg btn-block mt-3">
+							<Bell size={16} /> Masuk untuk dikabari saat tersedia
+						</a>
+					{/if}
 					{#if data.isKonsumen}
 						<button type="button" disabled class="btn btn-lg btn-block mt-3">
 							<ShoppingBag size={16} /> Stok habis
@@ -301,6 +331,36 @@
 									: 'Tambah ke keranjang'}
 						</button>
 					</form>
+
+					{#if data.alertsEnabled && soldOutSizes.length > 0}
+						<form
+							method="POST"
+							action="?/kabari"
+							class="mt-4 flex flex-wrap items-end gap-3 border border-dashed border-line bg-mist/50 p-4"
+							use:enhance={enhanceInPlace((b) => (alerting = b))}
+						>
+							<div class="min-w-0 flex-1">
+								<label for="alert-size" class="label">Ukuran habis? Kabari saya</label>
+								<select id="alert-size" name="size" bind:value={alertSize}>
+									{#each soldOutSizes as s (s.label)}
+										<option value={s.label}>
+											{s.label}{data.alertSizes.includes(s.label) ? ' (pengingat aktif)' : ''}
+										</option>
+									{/each}
+								</select>
+							</div>
+							{#if data.alertSizes.includes(alertSize)}
+								<input type="hidden" name="batal" value="1" />
+								<button type="submit" disabled={alerting} class="btn btn-sm">
+									<Bell size={14} /> Batalkan
+								</button>
+							{:else}
+								<button type="submit" disabled={alerting} class="btn btn-sm">
+									<Bell size={14} /> Kabari saya
+								</button>
+							{/if}
+						</form>
+					{/if}
 
 					<form
 						method="POST"
@@ -381,78 +441,11 @@
 	{/if}
 
 	<!-- Ulasan pembeli -->
-	<section id="ulasan" class="mt-16 scroll-mt-24">
-		<div class="mb-6 flex items-end justify-between gap-4">
-			<h2 class="section-title">Ulasan pembeli</h2>
-			{#if data.reviewSummary.count > 0}
-				<p class="meta">{data.reviewSummary.count} ulasan</p>
-			{/if}
-		</div>
-
-		{#if data.reviewSummary.count === 0}
-			<div class="border border-dashed border-line bg-mist/50 px-6 py-12 text-center">
-				<p class="text-sm font-bold tracking-[0.14em] uppercase">Belum ada ulasan</p>
-				<p class="mx-auto mt-2 max-w-sm text-sm text-smoke">
-					Ulasan ditulis pembeli setelah pesanan selesai.
-				</p>
-			</div>
-		{:else}
-			<div class="grid gap-8 lg:grid-cols-[18rem_minmax(0,1fr)] lg:gap-14">
-				<div>
-					<p class="display text-6xl tabular-nums">{data.reviewSummary.avg?.toFixed(1)}</p>
-					{#if data.reviewSummary.avg !== null}
-						<div class="mt-2"><Stars value={data.reviewSummary.avg} size={18} /></div>
-					{/if}
-					<p class="mt-2 text-xs text-smoke">dari {data.reviewSummary.count} ulasan</p>
-
-					<ul class="mt-5 space-y-1.5" aria-label="Sebaran rating">
-						{#each [5, 4, 3, 2, 1] as star (star)}
-							{@const n = data.reviewSummary.dist[star - 1]}
-							<li class="flex items-center gap-3 text-xs">
-								<span class="w-6 tabular-nums">{star}&#9733;</span>
-								<span class="h-1.5 flex-1 bg-line">
-									<span
-										class="block h-full bg-ink"
-										style="width: {(n / data.reviewSummary.count) * 100}%"
-									></span>
-								</span>
-								<span class="w-7 text-right text-smoke tabular-nums">{n}</span>
-							</li>
-						{/each}
-					</ul>
-				</div>
-
-				<div>
-					<ul class="divide-y divide-line border-y border-line">
-						{#each data.reviews as r (r.id)}
-							<li class="py-5">
-								<div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-									<div class="flex items-center gap-3">
-										<Stars value={r.rating} size={14} />
-										<span class="text-sm font-bold">{r.name}</span>
-									</div>
-									<time class="text-xs text-smoke" datetime={r.createdAt}>
-										{new Intl.DateTimeFormat('id-ID', {
-											dateStyle: 'medium',
-											timeZone: 'Asia/Jakarta'
-										}).format(new Date(r.createdAt))}
-									</time>
-								</div>
-								{#if r.comment}
-									<p class="mt-2 text-sm leading-relaxed text-smoke">{r.comment}</p>
-								{/if}
-							</li>
-						{/each}
-					</ul>
-					{#if !data.showAllReviews && data.reviewSummary.count > data.reviews.length}
-						<a href="?ulasan=semua#ulasan" class="btn btn-sm mt-6">
-							Lihat semua {data.reviewSummary.count} ulasan
-						</a>
-					{/if}
-				</div>
-			</div>
-		{/if}
-	</section>
+	<ProductReviews
+		summary={data.reviewSummary}
+		reviews={data.reviews}
+		showAll={data.showAllReviews}
+	/>
 
 	<!-- Rekomendasi -->
 	<div class="mt-16 space-y-14">

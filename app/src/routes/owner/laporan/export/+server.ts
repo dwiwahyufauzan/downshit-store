@@ -16,7 +16,8 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	const sep = url.searchParams.get('pemisah') === 'koma' ? ',' : ';';
 
 	const { rows } = await salesList(r.from, r.to, status);
-	const sum = (k: 'subtotal' | 'shipping' | 'total') => rows.reduce((s, x) => s + x[k], 0);
+	const sum = (k: 'subtotal' | 'discount' | 'shipping' | 'total') =>
+		rows.reduce((s, x) => s + x[k], 0);
 
 	const csv = toCsv(
 		[
@@ -25,7 +26,9 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 				'Tanggal (WIB)',
 				'Pelanggan',
 				'Status',
-				'Subtotal (Pendapatan)',
+				'Subtotal (Barang)',
+				'Diskon Voucher',
+				'Pendapatan (Subtotal - Diskon)',
 				'Ongkir',
 				'Total (Omzet)'
 			],
@@ -35,10 +38,22 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 				x.customer,
 				x.status,
 				x.subtotal,
+				x.discount,
+				x.subtotal - x.discount,
 				x.shipping,
 				x.total
 			]),
-			['TOTAL', '', '', `${rows.length} pesanan`, sum('subtotal'), sum('shipping'), sum('total')]
+			[
+				'TOTAL',
+				'',
+				'',
+				`${rows.length} pesanan`,
+				sum('subtotal'),
+				sum('discount'),
+				sum('subtotal') - sum('discount'),
+				sum('shipping'),
+				sum('total')
+			]
 		],
 		sep
 	);

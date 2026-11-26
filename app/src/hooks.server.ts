@@ -9,6 +9,8 @@ import {
 	validateSession
 } from '#lib/server/auth';
 import { profilePathFor } from '#lib/server/login';
+import { reportError } from '#lib/server/error-report';
+import { log } from '#lib/server/logger';
 
 const ADMIN_AREA = /^\/admin(\/|$)/;
 const OWNER_AREA = /^\/owner(\/|$)/;
@@ -22,7 +24,14 @@ const NEEDS_LOGIN = [
 ];
 const CATALOG = [/^\/produk(\/|$)/, /^\/bundling(\/|$)/];
 // Path yang tidak butuh sesi → hemat satu query DB per gambar/permintaan (bukti bayar tetap butuh sesi)
-const NO_SESSION = [/^\/uploads\/(products|bundles)\//, /^\/internal\//, /^\/api\/midtrans\//];
+const NO_SESSION = [
+	/^\/uploads\/(products|bundles)\//,
+	/^\/internal\//,
+	/^\/api\/midtrans\//,
+	/^\/api\/wilayah$/,
+	/^\/api\/health$/,
+	/^\/api\/client-error$/
+];
 // Akun yang wajib ganti password (BR-24) hanya boleh membuka halaman ini
 const FORCED_CHANGE_ALLOWED = [
 	/^\/profil(\/|$)/,
@@ -44,7 +53,14 @@ if (isHttps && !process.env.ADDRESS_HEADER) {
 	);
 }
 
+// Permintaan lebih lambat dari ini dicatat sebagai peringatan
+const SLOW_MS = 3000;
+
 export const handle: Handle = async ({ event, resolve }) => {
+	// ID permintaan: dari proxy (x-request-id) bila wajar, selain itu acak; ikut ke log & header respons
+	const inbound = event.request.headers.get('x-request-id');
+	event.locals.requestId =
+		inbound && /^[\w.-]{6,64}$/.test(inbound) ? inbound : crypto.randomUUID().slice(0, 12);
 	// Cocokkan pada path ter-decode agar `/%61dmin` tidak lolos dari gerbang
 	// (SvelteKit mencocokkan route dengan path yang sudah di-decode, event.url.pathname masih mentah).
 	let path: string;
@@ -97,7 +113,23 @@ export const handle: Handle = async ({ event, resolve }) => {
 		redirect(303, `${profilePathFor(user.role)}?wajib=1`);
 	}
 
+	const started = Date.now();
 	const response = await resolve(event);
+	response.headers.set('x-request-id', event.locals.requestId);
+	const ms = Date.now() - started;
+	if (response.status >= 500 || ms > SLOW_MS) {
+		// galat tak terduga sudah dilaporkan handleError; ini mencatat respons 5xx lain dan permintaan lambat
+		log[response.status >= 500 ? 'error' : 'warn'](
+			response.status >= 500 ? 'respons 5xx' : 'permintaan lambat',
+			{
+				requestId: event.locals.requestId,
+				method: event.request.method,
+				path,
+				status: response.status,
+				ms
+			}
+		);
+	}
 
 	// Header keamanan dasar (CSP diatur di vite.config.ts → sveltekit({ csp }))
 	response.headers.set('X-Content-Type-Options', 'nosniff');
@@ -143,11 +175,16 @@ export const handleError: HandleServerError = (input) => {
 		if (status < 500) return { message: GENERIC[status] ?? 'Permintaan tidak dapat diproses.' };
 	}
 
-	// ID pendek: dicatat di log server dan ditampilkan ke pengguna agar laporan mudah dilacak
-	const code = crypto.randomUUID().slice(0, 8);
-	console.error(
-		`[${new Date().toISOString()}] [${code}] ${event.request.method} ${event.url.pathname}`,
-		input.error
-	);
+	// ID permintaan dicatat di log & Sentry dan ditampilkan ke pengguna agar laporan mudah dilacak
+	const code = event.locals.requestId ?? crypto.randomUUID().slice(0, 12);
+	const status =
+		input.kind === 'framework' || input.kind === 'validation' ? input.error.status : 500;
+	void reportError(input.error, {
+		requestId: code,
+		method: event.request.method,
+		path: event.url.pathname,
+		status,
+		userId: event.locals.user?.id
+	});
 	return { message: 'Terjadi kendala pada server. Silakan coba lagi nanti.', code };
 };

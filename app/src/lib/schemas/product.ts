@@ -13,6 +13,13 @@ const base = {
 		minMsg: 'Harga minimal Rp 1.000',
 		maxMsg: 'Harga maksimal Rp 100.000.000'
 	}),
+	// berat satuan (gram) untuk hitung ongkir
+	weightGrams: intField('Berat', {
+		min: 1,
+		max: 50_000,
+		minMsg: 'Berat minimal 1 gram',
+		maxMsg: 'Berat maksimal 50.000 gram (50 kg)'
+	}),
 	isBundleable: z.boolean().default(false),
 	isActive: z.boolean().default(false)
 };

@@ -1,6 +1,6 @@
 import { and, count, eq, gt, lt } from 'drizzle-orm';
 import { db } from './db';
-import { loginAttempts } from './db/schema';
+import { loginAttempts, rateHits } from './db/schema';
 
 const WINDOW_MIN = 15;
 const MAX_ATTEMPTS = 5;
@@ -30,35 +30,51 @@ export async function purgeOldAttempts(): Promise<number> {
 
 export const purgeOld = purgeOldAttempts;
 
-/* ---------- Rate limit ringan di memori (registrasi, upload, ganti password) ---------- */
+/* ---------- Rate limit jendela geser, disimpan di database (dibagi antar-proses) ---------- */
 
-const hits = new Map<string, number[]>();
+let sincePurge = 0;
 
 /**
  * Mengembalikan `true` bila DIBLOKIR (sudah `max` permintaan dalam `windowMs`).
- * Disimpan di memori proses: hilang saat restart dan tidak dibagi antar-proses
- * (cukup untuk satu instance Node).
+ * Hitungan ada di tabel `rate_hits` sehingga dibagi antar-proses/instance yang memakai database yang sama
+ * dan tidak hilang saat restart. Sinkron (better-sqlite3) dan atomik (BEGIN IMMEDIATE): dua permintaan
+ * bersamaan tidak bisa sama-sama lolos di batas. Permintaan yang diblokir tidak menambah hitungan.
  */
 export function rateLimit(key: string, max: number, windowMs: number): boolean {
 	const now = Date.now();
-	const recent = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
-	if (recent.length >= max) {
-		hits.set(key, recent);
-		return true;
-	}
-	recent.push(now);
-	hits.set(key, recent);
+	const blocked = db.transaction(
+		(tx) => {
+			const since = now - windowMs;
+			tx.delete(rateHits)
+				.where(and(eq(rateHits.key, key), lt(rateHits.at, since)))
+				.run();
+			const hit = tx.select({ n: count() }).from(rateHits).where(eq(rateHits.key, key)).get();
+			if ((hit?.n ?? 0) >= max) return true;
+			tx.insert(rateHits).values({ key, at: now }).run();
+			return false;
+		},
+		{ behavior: 'immediate' }
+	);
 
-	// Sapu entri basi agar Map tidak membengkak
-	if (hits.size > 5000) {
-		for (const [k, v] of hits) if (!v.length || now - v[v.length - 1] > windowMs) hits.delete(k);
+	// kunci yang tidak pernah dipakai lagi tidak terhapus oleh pembersihan per kunci di atas
+	if (++sincePurge >= 500) {
+		sincePurge = 0;
+		purgeRateHits();
 	}
-	return false;
+	return blocked;
 }
 
-/** Hanya untuk tes: kosongkan penghitung memori. */
+/** Hapus catatan lebih dari 1 hari (batas jendela terpanjang yang dipakai aplikasi jauh di bawah ini). */
+export function purgeRateHits(): number {
+	return db
+		.delete(rateHits)
+		.where(lt(rateHits.at, Date.now() - 24 * 3600_000))
+		.run().changes;
+}
+
+/** Hanya untuk tes: kosongkan penghitung. */
 export function resetRateLimits() {
-	hits.clear();
+	db.delete(rateHits).run();
 }
 
 let warnedClientAddress = false;

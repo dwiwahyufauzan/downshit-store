@@ -1,11 +1,15 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { and, asc, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '#lib/server/db';
-import { bundleItems, bundles, categories, productImages, products } from '#lib/server/db/schema';
+import { products } from '#lib/server/db/schema';
 import { addToCart } from '#lib/server/cart';
-import { getSettings } from '#lib/server/settings';
-import { getSizes } from '#lib/server/sizes';
+import {
+	findActiveProductBySlug,
+	getProductGallery,
+	getProductStockInfo,
+	listBundlesContaining
+} from '#lib/server/catalog';
 import {
 	getBestSellers,
 	getProductStats,
@@ -15,6 +19,12 @@ import {
 import { getReviewSummary, listReviews } from '#lib/server/reviews';
 import { isWishlisted, toggleWishlist } from '#lib/server/wishlist';
 import { rateLimit } from '#lib/server/rate-limit';
+import {
+	pendingAlertSizes,
+	subscribeStockAlert,
+	unsubscribeStockAlert
+} from '#lib/server/stock-alerts';
+import { mailEnabled } from '#lib/server/mail';
 import type { Actions, PageServerLoad } from './$types';
 
 const addSchema = z.object({
@@ -22,66 +32,14 @@ const addSchema = z.object({
 });
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
-	const slug = params.slug;
+	const prod = await findActiveProductBySlug(params.slug);
+	if (!prod) throw error(404, 'Produk tidak ditemukan');
 
-	const [prod] = await db
-		.select({
-			id: products.id,
-			name: products.name,
-			slug: products.slug,
-			price: products.price,
-			stock: products.stock,
-			description: products.description,
-			imageUrl: products.imageUrl,
-			isBundleable: products.isBundleable,
-			categoryId: products.categoryId,
-			categoryName: categories.name,
-			categorySlug: categories.slug
-		})
-		.from(products)
-		.leftJoin(categories, eq(categories.id, products.categoryId))
-		.where(and(eq(products.slug, slug), eq(products.isActive, true), isNull(products.deletedAt)))
-		.limit(1);
-
-	if (!prod) {
-		throw error(404, 'Produk tidak ditemukan');
-	}
-
-	// Cari paket bundling yang menyertakan produk ini
-	const relatedBundles = await db
-		.select({
-			id: bundles.id,
-			name: bundles.name,
-			slug: bundles.slug,
-			price: bundles.price,
-			imageUrl: bundles.imageUrl,
-			stock: bundles.stock
-		})
-		.from(bundleItems)
-		.innerJoin(bundles, eq(bundles.id, bundleItems.bundleId))
-		.where(
-			and(eq(bundleItems.productId, prod.id), eq(bundles.isActive, true), isNull(bundles.deletedAt))
-		);
-
-	const { lowStock } = await getSettings();
-
-	// Galeri foto produk (mendukung banyak foto per produk)
-	const productGallery = await db
-		.select({
-			id: productImages.id,
-			imageUrl: productImages.imageUrl,
-			sortOrder: productImages.sortOrder
-		})
-		.from(productImages)
-		.where(eq(productImages.productId, prod.id))
-		.orderBy(asc(productImages.sortOrder), asc(productImages.id));
-
-	const gallery =
-		productGallery.length > 0
-			? productGallery
-			: prod.imageUrl
-				? [{ id: 0, imageUrl: prod.imageUrl, sortOrder: 0 }]
-				: [];
+	const [relatedBundles, gallery, stockInfo] = await Promise.all([
+		listBundlesContaining(prod.id),
+		getProductGallery(prod.id, prod.imageUrl),
+		getProductStockInfo(prod.id)
+	]);
 
 	// Ulasan pembeli + rekomendasi (serupa, terlaris, rating tertinggi); rak tidak saling mengulang
 	const showAllReviews = url.searchParams.get('ulasan') === 'semua';
@@ -95,6 +53,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		limit: 4,
 		excludeIds: [prod.id, ...similar.map((p) => p.id), ...bestSellers.map((p) => p.id)]
 	});
+	const konsumenId = locals.user?.role === 'konsumen' ? locals.user.id : null;
 
 	return {
 		product: prod,
@@ -107,11 +66,14 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		bestSellers,
 		topRated,
 		// Pilihan ukuran + stok masing-masing (kosong = produk tanpa ukuran)
-		sizes: getSizes(db, prod.id),
-		lowStock,
+		sizes: stockInfo.sizes,
+		lowStock: stockInfo.lowStock,
 		relatedBundles,
-		isKonsumen: locals.user?.role === 'konsumen',
-		isWishlisted: locals.user?.role === 'konsumen' ? isWishlisted(locals.user.id, prod.id) : false,
+		isKonsumen: konsumenId !== null,
+		// "kabari saya saat tersedia" hanya ditawarkan bila email terkonfigurasi
+		alertsEnabled: mailEnabled(),
+		alertSizes: konsumenId ? pendingAlertSizes(konsumenId, prod.id) : [],
+		isWishlisted: konsumenId ? isWishlisted(konsumenId, prod.id) : false,
 		user: locals.user
 	};
 };
@@ -144,6 +106,36 @@ export const actions: Actions = {
 			message: r.saved ? 'Disimpan ke favorit.' : 'Dihapus dari favorit.',
 			...(r.saved && { toastAction: { href: '/favorit', label: 'Lihat favorit' } })
 		};
+	},
+
+	/** Minta dikabari saat varian yang habis tersedia lagi (atau batalkan permintaan itu). */
+	kabari: async ({ request, locals, url, params }) => {
+		if (!locals.user) {
+			throw redirect(303, `/login?next=${encodeURIComponent(url.pathname)}`);
+		}
+		if (locals.user.role !== 'konsumen') {
+			return fail(403, { message: 'Hanya akun Konsumen yang dapat meminta pengingat stok.' });
+		}
+		if (rateLimit(`stockalert|${locals.user.id}`, 20, 60_000)) {
+			return fail(429, { message: 'Terlalu cepat. Coba lagi sebentar.' });
+		}
+
+		const [prod] = await db
+			.select({ id: products.id })
+			.from(products)
+			.where(eq(products.slug, params.slug))
+			.limit(1);
+		if (!prod) throw error(404, 'Produk tidak ditemukan');
+
+		const fd = await request.formData();
+		const size = String(fd.get('size') ?? '');
+		if (fd.get('batal') === '1') {
+			unsubscribeStockAlert(locals.user.id, prod.id, size);
+			return { success: true, message: 'Pengingat stok dibatalkan.' };
+		}
+		const r = subscribeStockAlert(locals.user.id, prod.id, size);
+		if (!r.ok) return fail(400, { message: r.message });
+		return { success: true, message: 'Siap! Kami kabari lewat email saat stoknya tersedia lagi.' };
 	},
 
 	tambah: async ({ request, locals, url, params }) => {

@@ -5,9 +5,12 @@ import {
 	clearCart,
 	getCartDetails,
 	removeCartItem,
+	setAllCartItemsSelected,
+	setCartItemSelected,
 	updateCartItemQuantity
 } from '#lib/server/cart';
 import { getSettings } from '#lib/server/settings';
+import { shippingApiEnabled } from '#lib/server/shipping';
 import type { Actions, PageServerLoad } from './$types';
 
 const updateSchema = z.object({
@@ -19,6 +22,11 @@ const deleteSchema = z.object({
 	itemId: z.coerce.number().int().positive('ID item tidak valid')
 });
 
+const selectSchema = z.object({
+	itemId: z.coerce.number().int().positive('ID item tidak valid'),
+	selected: z.enum(['1', '0'])
+});
+
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
 		throw redirect(303, `/login?next=${encodeURIComponent(url.pathname)}`);
@@ -28,15 +36,21 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	const [cart, settings] = await Promise.all([getCartDetails(locals.user.id), getSettings()]);
 
+	// baris bermasalah yang TIDAK dicentang tidak menghalangi checkout
 	const hasProblem = cart.items.some((item) => !item.isAvailable);
+	const hasSelectedProblem = cart.items.some((item) => item.isSelected && !item.isAvailable);
+	const selectedCount = cart.items.filter((item) => item.isSelected).length;
 	const shippingCost = settings.shippingCost ?? 0;
 
 	return {
 		cart,
 		settings,
 		hasProblem,
+		hasSelectedProblem,
+		shippingApi: shippingApiEnabled(settings),
+		selectedCount,
 		shippingCost,
-		estimatedTotal: cart.subtotal + (cart.items.length > 0 ? shippingCost : 0)
+		estimatedTotal: cart.subtotal + (cart.selectedUnits > 0 ? shippingCost : 0)
 	};
 };
 
@@ -79,6 +93,31 @@ export const actions: Actions = {
 
 		await removeCartItem(locals.user!.id, parse.data.itemId);
 		return { success: true, message: 'Item berhasil dihapus dari keranjang' };
+	},
+
+	pilih: async ({ request, locals }) => {
+		requireRole(locals, 'konsumen');
+
+		const formData = await request.formData();
+		const parse = selectSchema.safeParse({
+			itemId: formData.get('itemId'),
+			selected: formData.get('selected')
+		});
+
+		if (!parse.success) {
+			return fail(400, { message: 'Pilihan item tidak valid' });
+		}
+
+		await setCartItemSelected(locals.user!.id, parse.data.itemId, parse.data.selected === '1');
+		return { success: true };
+	},
+
+	pilihSemua: async ({ request, locals }) => {
+		requireRole(locals, 'konsumen');
+
+		const formData = await request.formData();
+		await setAllCartItemsSelected(locals.user!.id, formData.get('selected') === '1');
+		return { success: true };
 	},
 
 	kosongkan: async ({ locals }) => {

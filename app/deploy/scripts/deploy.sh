@@ -57,17 +57,16 @@ need sqlite3 sqlite3
 if [ -f "$DB_FILE" ] && [ "$(sqlite3 "$DB_FILE" "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='users';")" = "1" ]; then
   log "backup sebelum migrasi"
   DOWNSHIT_BASE="$BASE" ENV_FILE="$ENV_FILE" bash "$REL/deploy/scripts/backup.sh"
-  log "migrasi (db:migrate-sync, idempoten)"
-  npm run db:migrate-sync
+  log "migrasi (db:migrate, berversi & idempoten; DB lama disusul otomatis)"
+  npm run db:migrate
 else
-  log "database belum ada -> membuat skema baru di $DB_FILE"
-  npx drizzle-kit export --sql | sqlite3 "$DB_FILE"
-  sqlite3 "$DB_FILE" 'PRAGMA journal_mode=WAL;' > /dev/null
+  log "database belum ada -> membuat skema lewat migrasi di $DB_FILE"
+  npm run db:migrate
   chmod 600 "$DB_FILE"
   log "LANGKAH BERIKUTNYA (sekali): seed akun owner/admin: SEED_OWNER_EMAIL, SEED_ADMIN_EMAIL, SEED_DEFAULT_PASSWORD (>= 12 karakter), NODE_ENV=production, SEED_ALLOW_PROD=true npm run db:seed (lihat deploy/env.production.example)"
 fi
 
-# 4) buang devDependencies (modul native tetap). tsx tetap ada (dependencies); drizzle-kit hilang.
+# 4) buang devDependencies (modul native tetap). tsx & drizzle-orm (runner migrasi) tetap ada; drizzle-kit hilang.
 [ "$SKIP_PRUNE" = "1" ] || npm prune --omit=dev
 
 # 5) aktifkan rilis

@@ -17,6 +17,7 @@ export type ProductFormErrors = {
 	categoryId?: string[];
 	description?: string[];
 	price?: string[];
+	weightGrams?: string[];
 	stock?: string[];
 	sizes?: string[];
 	image?: string[];
@@ -45,6 +46,7 @@ export const actions = {
 			categoryId: fd.get('categoryId'),
 			description: fd.get('description') || undefined,
 			price: fd.get('price'),
+			weightGrams: fd.get('weightGrams'),
 			stock: fd.get('stock'),
 			isBundleable: fd.get('isBundleable') === 'on',
 			isActive: fd.get('isActive') === 'on'
@@ -113,6 +115,7 @@ export const actions = {
 							categoryId: d.categoryId,
 							description: d.description ?? null,
 							price: d.price,
+							weightGrams: d.weightGrams,
 							stock: d.stock,
 							imageUrl,
 							isBundleable: d.isBundleable,

@@ -11,6 +11,7 @@ const LIMIT_PIXELS = 25_000_000; // cegah "decompression bomb" (foto kamera 24 M
 const FOLDERS = {
 	products: { max: 1200, thumb: 400 },
 	bundles: { max: 1200, thumb: 400 },
+	reviews: { max: 1200, thumb: 400 },
 	proofs: { max: 1600, thumb: 0 }
 } as const;
 type Folder = keyof typeof FOLDERS;

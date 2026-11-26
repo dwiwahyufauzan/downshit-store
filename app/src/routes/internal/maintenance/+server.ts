@@ -2,10 +2,13 @@ import { error, json } from '@sveltejs/kit';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { CRON_SECRET } from '$app/env/private';
 import { purgeExpiredSessions } from '#lib/server/auth';
-import { purgeOld } from '#lib/server/rate-limit';
+import { purgeOld, purgeRateHits } from '#lib/server/rate-limit';
+import { purgePasswordResets } from '#lib/server/password-reset';
+import { notifyRestocked } from '#lib/server/stock-alerts';
 import { expireUnpaidOrders } from '#lib/server/orders';
 import { autoCompleteShippedOrders } from '#lib/server/order-flow';
 import { reconcileGatewayPayments } from '#lib/server/gateway-payments';
+import { setSetting } from '#lib/server/settings';
 import type { RequestHandler } from './$types';
 
 const digest = (s: string) => createHash('sha256').update(s).digest();
@@ -36,8 +39,13 @@ export const POST: RequestHandler = async ({ request }) => {
 		completedOrders: await run('autoCompleteShippedOrders', autoCompleteShippedOrders),
 		reconciledGatewayPayments: await run('reconcileGatewayPayments', reconcileGatewayPayments),
 		purgedSessions: await run('purgeExpiredSessions', purgeExpiredSessions),
-		purgedLoginAttempts: await run('purgeOld', purgeOld)
+		purgedLoginAttempts: await run('purgeOld', purgeOld),
+		restockEmails: await run('notifyRestocked', notifyRestocked),
+		purgedRateHits: await run('purgeRateHits', async () => purgeRateHits()),
+		purgedPasswordResets: await run('purgePasswordResets', purgePasswordResets)
 	};
+	// jejak terakhir cron berjalan, dibaca /api/health agar cron yang macet terdeteksi
+	await setSetting('maintenance_last_run', new Date().toISOString());
 	// Ada job yang gagal (-1) → 500 agar cron/healthcheck/monitor bisa mendeteksinya
 	return json(result, { status: Object.values(result).includes(-1) ? 500 : 200 });
 };

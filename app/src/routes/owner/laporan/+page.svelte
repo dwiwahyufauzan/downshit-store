@@ -284,6 +284,7 @@
 								<th>Pelanggan</th>
 								<th>Status</th>
 								<th class="text-right">Subtotal</th>
+								<th class="text-right">Diskon</th>
 								<th class="text-right">Ongkir</th>
 								<th class="text-right">Total omzet</th>
 							</tr>
@@ -291,7 +292,7 @@
 						<tbody>
 							{#if data.rows.length === 0}
 								<tr>
-									<td colspan="7" class="py-10 text-center text-smoke">
+									<td colspan="8" class="py-10 text-center text-smoke">
 										Tidak ada transaksi yang sesuai pada filter ini.
 									</td>
 								</tr>
@@ -305,6 +306,9 @@
 										<td class="text-right whitespace-nowrap tabular-nums"
 											>{formatRupiah(row.subtotal)}</td
 										>
+										<td class="text-right whitespace-nowrap text-smoke tabular-nums">
+											{row.discount > 0 ? `−${formatRupiah(row.discount)}` : '—'}
+										</td>
 										<td class="text-right whitespace-nowrap text-smoke tabular-nums">
 											{formatRupiah(row.shipping)}
 										</td>

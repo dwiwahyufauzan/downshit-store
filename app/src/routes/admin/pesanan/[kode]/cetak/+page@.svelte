@@ -222,8 +222,14 @@
 					<dt>Subtotal</dt>
 					<dd>{formatRupiah(o.subtotal)}</dd>
 				</div>
+				{#if o.discount > 0}
+					<div class="flex justify-between">
+						<dt>Voucher {o.voucherCode}</dt>
+						<dd>−{formatRupiah(o.discount)}</dd>
+					</div>
+				{/if}
 				<div class="flex justify-between">
-					<dt>Ongkos kirim</dt>
+					<dt>Ongkos kirim{o.shippingService ? ` (${o.shippingService})` : ''}</dt>
 					<dd>{formatRupiah(o.shippingCost)}</dd>
 				</div>
 				<div class="flex justify-between border-t-2 border-ink pt-2 text-base font-bold">

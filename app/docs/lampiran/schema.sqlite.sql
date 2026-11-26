@@ -43,6 +43,7 @@ CREATE TABLE `cart_items` (
 	`bundle_id` integer,
 	`quantity` integer DEFAULT 1 NOT NULL,
 	`size` text DEFAULT '' NOT NULL,
+	`is_selected` integer DEFAULT true NOT NULL,
 	FOREIGN KEY (`cart_id`) REFERENCES `carts`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`bundle_id`) REFERENCES `bundles`(`id`) ON UPDATE no action ON DELETE cascade
@@ -110,10 +111,16 @@ CREATE TABLE `orders` (
 	`status` text DEFAULT 'menunggu_pembayaran' NOT NULL,
 	`subtotal` integer NOT NULL,
 	`shipping_cost` integer DEFAULT 0 NOT NULL,
+	`discount` integer DEFAULT 0 NOT NULL,
+	`voucher_code` text,
 	`total` integer NOT NULL,
 	`recipient_name` text NOT NULL,
 	`recipient_phone` text NOT NULL,
 	`shipping_address` text NOT NULL,
+	`shipping_postal_code` text,
+	`shipping_village_code` text,
+	`shipping_service` text,
+	`shipping_etd` text,
 	`notes` text,
 	`expires_at` text,
 	`cancel_reason` text,
@@ -127,6 +134,18 @@ CREATE UNIQUE INDEX `uq_orders_code` ON `orders` (`code`);
 CREATE INDEX `idx_orders_user` ON `orders` (`user_id`);
 CREATE INDEX `idx_orders_status` ON `orders` (`status`);
 CREATE INDEX `idx_orders_created` ON `orders` (`created_at`);
+CREATE TABLE `password_resets` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`user_id` integer NOT NULL,
+	`token_hash` text NOT NULL,
+	`expires_at` text NOT NULL,
+	`used_at` text,
+	`created_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
+);
+
+CREATE UNIQUE INDEX `uq_pwreset_token` ON `password_resets` (`token_hash`);
+CREATE INDEX `idx_pwreset_user` ON `password_resets` (`user_id`);
 CREATE TABLE `payment_simulations` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`gateway_order_id` text NOT NULL,
@@ -197,6 +216,7 @@ CREATE TABLE `products` (
 	`description` text,
 	`price` integer NOT NULL,
 	`stock` integer DEFAULT 0 NOT NULL,
+	`weight_grams` integer DEFAULT 300 NOT NULL,
 	`image_url` text,
 	`is_bundleable` integer DEFAULT true NOT NULL,
 	`is_active` integer DEFAULT true NOT NULL,
@@ -237,6 +257,23 @@ CREATE TABLE `purchases` (
 );
 
 CREATE UNIQUE INDEX `uq_purchases_code` ON `purchases` (`code`);
+CREATE TABLE `rate_hits` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`key` text NOT NULL,
+	`at` integer NOT NULL
+);
+
+CREATE INDEX `idx_rate_key_at` ON `rate_hits` (`key`,`at`);
+CREATE TABLE `review_images` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`review_id` integer NOT NULL,
+	`image_url` text NOT NULL,
+	`sort_order` integer DEFAULT 0 NOT NULL,
+	`created_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+	FOREIGN KEY (`review_id`) REFERENCES `reviews`(`id`) ON UPDATE no action ON DELETE cascade
+);
+
+CREATE INDEX `idx_review_images_review` ON `review_images` (`review_id`);
 CREATE TABLE `reviews` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`product_id` integer NOT NULL,
@@ -304,12 +341,32 @@ CREATE TABLE `stock_movements` (
 
 CREATE INDEX `idx_sm_product` ON `stock_movements` (`product_id`);
 CREATE INDEX `idx_sm_created` ON `stock_movements` (`created_at`);
+CREATE TABLE `stock_subscriptions` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`user_id` integer NOT NULL,
+	`product_id` integer NOT NULL,
+	`size` text DEFAULT '' NOT NULL,
+	`notified_at` text,
+	`created_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON UPDATE no action ON DELETE cascade
+);
+
+CREATE UNIQUE INDEX `uq_stock_sub` ON `stock_subscriptions` (`user_id`,`product_id`,`size`);
+CREATE INDEX `idx_stock_sub_pending` ON `stock_subscriptions` (`notified_at`,`product_id`);
 CREATE TABLE `users` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`name` text NOT NULL,
 	`email` text NOT NULL,
 	`phone` text,
 	`address` text,
+	`address_province` text,
+	`address_city` text,
+	`address_district` text,
+	`address_village` text,
+	`address_detail` text,
+	`address_postal_code` text,
+	`address_village_code` text,
 	`password_hash` text NOT NULL,
 	`role` text DEFAULT 'konsumen' NOT NULL,
 	`is_active` integer DEFAULT true NOT NULL,
@@ -320,6 +377,39 @@ CREATE TABLE `users` (
 
 CREATE UNIQUE INDEX `uq_users_email` ON `users` (`email`);
 CREATE INDEX `idx_users_role` ON `users` (`role`);
+CREATE TABLE `voucher_redemptions` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`voucher_id` integer NOT NULL,
+	`user_id` integer NOT NULL,
+	`order_id` integer NOT NULL,
+	`created_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+	FOREIGN KEY (`voucher_id`) REFERENCES `vouchers`(`id`) ON UPDATE no action ON DELETE restrict,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`order_id`) REFERENCES `orders`(`id`) ON UPDATE no action ON DELETE cascade
+);
+
+CREATE UNIQUE INDEX `uq_redemption_order` ON `voucher_redemptions` (`order_id`);
+CREATE INDEX `idx_redemption_voucher_user` ON `voucher_redemptions` (`voucher_id`,`user_id`);
+CREATE TABLE `vouchers` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`code` text NOT NULL,
+	`description` text,
+	`type` text NOT NULL,
+	`value` integer NOT NULL,
+	`min_subtotal` integer DEFAULT 0 NOT NULL,
+	`max_discount` integer,
+	`starts_at` text,
+	`ends_at` text,
+	`usage_limit` integer,
+	`used_count` integer DEFAULT 0 NOT NULL,
+	`per_user_limit` integer DEFAULT 1 NOT NULL,
+	`is_active` integer DEFAULT true NOT NULL,
+	`show_on_home` integer DEFAULT false NOT NULL,
+	`created_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+	`updated_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL
+);
+
+CREATE UNIQUE INDEX `uq_vouchers_code` ON `vouchers` (`code`);
 CREATE TABLE `wishlists` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`user_id` integer NOT NULL,

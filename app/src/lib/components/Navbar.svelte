@@ -11,16 +11,21 @@
 	import Monitor from '@lucide/svelte/icons/monitor';
 	import Settings from '@lucide/svelte/icons/settings';
 	import Heart from '@lucide/svelte/icons/heart';
+	import PromoBar from './PromoBar.svelte';
+	import type { PromoVoucher } from '#lib/utils/promo';
 	import type { SessionUser } from '../../app';
 
 	let {
 		user,
 		cartCount = 0,
-		store = { name: 'Downshit Store' }
+		store = { name: 'Downshit Store' },
+		promos = []
 	}: {
 		user: SessionUser | null;
 		cartCount?: number;
 		store?: { name: string };
+		/** Voucher untuk banner di atas navbar (hanya ditampilkan di beranda pelanggan) */
+		promos?: PromoVoucher[];
 	} = $props();
 
 	let menuOpen = $state(false);
@@ -275,6 +280,10 @@
 			? 'fixed inset-x-0 top-0 z-50'
 			: 'sticky top-0 z-50'} transition-all duration-300"
 	>
+		<!-- Banner promo: hanya beranda, menempel di atas navbar -->
+		{#if isHome && promos.length > 0}
+			<PromoBar {promos} />
+		{/if}
 		<header
 			class="transition-all duration-300 {isTransparent
 				? 'border-transparent bg-transparent text-white'

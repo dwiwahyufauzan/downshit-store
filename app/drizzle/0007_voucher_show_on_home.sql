@@ -1,0 +1,1 @@
+ALTER TABLE `vouchers` ADD `show_on_home` integer DEFAULT false NOT NULL;

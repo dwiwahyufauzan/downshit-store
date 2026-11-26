@@ -164,6 +164,25 @@
 						</div>
 
 						<div>
+							<label for="weightGrams" class="label">Berat satuan (gram)</label>
+							<input
+								id="weightGrams"
+								name="weightGrams"
+								type="number"
+								min="1"
+								max="50000"
+								step="1"
+								class="h-[46px] w-full"
+								value={v.weightGrams ?? 300}
+								required
+							/>
+							<p class="hint">Dipakai menghitung ongkir. Kaos ± 250, hoodie ± 600.</p>
+							{#if form?.errors?.weightGrams}
+								<p class="field-error">{form.errors.weightGrams[0]}</p>
+							{/if}
+						</div>
+
+						<div>
 							<label for="stock" class="label">Stok awal</label>
 							<input
 								id="stock"

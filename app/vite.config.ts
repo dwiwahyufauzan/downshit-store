@@ -35,7 +35,8 @@ export default defineConfig(({ mode }) => {
 					runes: ({ filename }) =>
 						filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 				},
-				adapter: adapter(),
+				// BUILD_OUT: folder keluaran build (bawaan ./build); tes E2E memakai folder sendiri agar build rilis tak tertimpa
+				adapter: adapter({ out: process.env.BUILD_OUT ?? 'build' }),
 				// SvelteKit 3 tidak lagi menyediakan alias $lib: pakai subpath imports `#lib/*` (lihat "imports" di package.json)
 				// CSRF: izinkan form submission via Quick Tunnel Cloudflare (trycloudflare.com) hanya untuk dev/demo
 				csrf: {
@@ -76,12 +77,22 @@ export default defineConfig(({ mode }) => {
 						environment: 'node',
 						globalSetup: ['tests/global-setup.ts'],
 						setupFiles: ['tests/setup.ts'],
-						include: ['src/**/*.{test,spec}.{js,ts}'],
+						include: ['src/**/*.{test,spec}.{js,ts}', 'deploy/**/*.test.ts'],
 						exclude: [
 							'src/**/*.svelte.{test,spec}.{js,ts}',
 							'src/**/*.int.test.ts',
 							'src/**/integration*.test.ts'
 						]
+					}
+				},
+				{
+					// Komponen Svelte di DOM tiruan (happy-dom): `*.svelte.test.ts`
+					extends: './vite.config.ts',
+					resolve: { conditions: ['browser'] },
+					test: {
+						name: 'component',
+						environment: 'happy-dom',
+						include: ['src/**/*.svelte.test.ts']
 					}
 				},
 				{

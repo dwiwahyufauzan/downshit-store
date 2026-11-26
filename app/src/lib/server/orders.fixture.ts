@@ -23,7 +23,9 @@ import {
 	settings,
 	shipments,
 	stockMovements,
-	users
+	users,
+	voucherRedemptions,
+	vouchers
 } from './db/schema';
 import { addToCart } from './cart';
 import { createOrderFromCart } from './orders';
@@ -68,6 +70,8 @@ export function reset() {
 		payments,
 		shipments,
 		orderItems,
+		voucherRedemptions,
+		vouchers,
 		orders,
 		bundleItems,
 		bundles,

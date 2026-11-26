@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { addressShape, checkAddress } from './address';
 
 /** Dipakai ulang di registrasi & ganti password (BR-01: minimal 8 karakter, huruf + angka). */
 export const passwordSchema = z
@@ -45,11 +46,29 @@ export const loginSchema = z.object({
 	password: z.string().min(1, 'Password wajib diisi')
 });
 
-export const profileSchema = z.object({
-	name: z.string().trim().min(3, 'Nama minimal 3 karakter').max(100, 'Nama maksimal 100 karakter'),
-	phone: phoneField,
-	address: z.string().trim().max(500, 'Alamat maksimal 500 karakter').optional()
+export const forgotPasswordSchema = z.object({
+	email: z.string().trim().toLowerCase().email('Format email tidak valid')
 });
+
+export const resetPasswordSchema = z
+	.object({ password: passwordSchema, confirmPassword: z.string() })
+	.refine((d) => d.password === d.confirmPassword, {
+		message: 'Konfirmasi password tidak cocok',
+		path: ['confirmPassword']
+	});
+
+export const profileSchema = z
+	.object({
+		name: z
+			.string()
+			.trim()
+			.min(3, 'Nama minimal 3 karakter')
+			.max(100, 'Nama maksimal 100 karakter'),
+		phone: phoneField,
+		...addressShape
+	})
+	// alamat default: kosong semua (hapus) atau lengkap, tidak boleh sebagian
+	.superRefine((d, ctx) => checkAddress(d, ctx, false));
 
 export const changePasswordSchema = z
 	.object({

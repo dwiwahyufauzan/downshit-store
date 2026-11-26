@@ -14,6 +14,7 @@
 		{ label: 'Bundling', href: '/admin/bundling' },
 		{ label: 'Pembelian', href: '/admin/pembelian' },
 		{ label: 'Stok', href: '/admin/stok' },
+		{ label: 'Voucher', href: '/admin/voucher' },
 		{ label: 'Ulasan', href: '/admin/ulasan' },
 		{ label: 'Pelanggan', href: '/admin/pelanggan' },
 		{ label: 'Pengaturan', href: '/admin/pengaturan' },

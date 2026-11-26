@@ -1,12 +1,16 @@
 /**
  * SRS-NF-003 (basis data terstruktur) + jalur instal produksi:
- *  - skema hasil `drizzle-kit export --sql` (dipakai deploy.sh pada instal pertama) HARUS identik dengan
- *    skema hasil `drizzle-kit push` (dipakai tes & dev): tabel, kolom, tipe, default, indeks, kunci asing.
- *  - 24 tabel aplikasi, FK konsisten, tanpa data yatim pada data sintetis.
+ *  - skema hasil MIGRASI berversi (./drizzle, dipakai deploy.sh & `npm run db:migrate`) HARUS identik dengan
+ *    skema hasil `drizzle-kit push` dari schema.ts (dipakai tes & dev): tabel, kolom, tipe, default, indeks, FK.
+ *  - database LAMA (tanpa tabel pencatat migrasi) disusul ke baseline dan hasilnya juga identik.
+ *  - 30 tabel aplikasi, FK konsisten, tanpa data yatim pada data sintetis.
  * Tidak memakai modul db aplikasi; hanya berkas template kosong dari tests/global-setup.ts.
  */
 import { execSync } from 'node:child_process';
-import { copyFileSync, rmSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { readFileSync } from 'node:fs';
 import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 
@@ -23,6 +27,7 @@ const APP_TABLES = [
 	'order_item_components',
 	'order_items',
 	'orders',
+	'password_resets',
 	'payment_simulations',
 	'payments',
 	'product_images',
@@ -30,12 +35,17 @@ const APP_TABLES = [
 	'products',
 	'purchase_items',
 	'purchases',
+	'rate_hits',
+	'review_images',
 	'reviews',
 	'sessions',
 	'settings',
 	'shipments',
 	'stock_movements',
+	'stock_subscriptions',
 	'users',
+	'voucher_redemptions',
+	'vouchers',
 	'wishlists'
 ];
 
@@ -43,14 +53,23 @@ function describeDb(db: Database.Database) {
 	const tables = (
 		db
 			.prepare(
-				"select name from sqlite_master where type='table' and name not like 'sqlite_%' order by name"
+				"select name from sqlite_master where type='table' and name not like 'sqlite_%' and name <> '__drizzle_migrations' order by name"
 			)
 			.all() as { name: string }[]
 	).map((t) => t.name);
 	const out: Record<string, unknown> = {};
 	for (const t of tables) {
 		out[t] = {
-			columns: db.prepare(`pragma table_info(${t})`).all(),
+			// urutan kolom tidak berarti (ALTER TABLE ADD COLUMN selalu menambah di akhir)
+			columns: (db.prepare(`pragma table_info(${t})`).all() as { cid: number; name: string }[])
+				.map(({ name, type, notnull, dflt_value, pk }: Record<string, unknown>) => ({
+					name,
+					type,
+					notnull,
+					dflt_value,
+					pk
+				}))
+				.sort((a, b) => String(a.name).localeCompare(String(b.name))),
 			indexes: (
 				db.prepare(`pragma index_list(${t})`).all() as {
 					name: string;
@@ -80,49 +99,73 @@ describe('skema database (NF-03)', () => {
 		expect(template, 'tests/global-setup.ts harus menyetel TEST_DB_TEMPLATE').toBeTruthy();
 	});
 
-	it('berisi tepat 24 tabel aplikasi', () => {
+	it('berisi tepat 30 tabel aplikasi', () => {
 		const db = new Database(template!, { readonly: true });
 		expect(describeDb(db).tables).toEqual(APP_TABLES);
 		db.close();
 	});
 
-	it('`drizzle-kit export --sql` (instal pertama produksi) == skema hasil `push`', () => {
-		const sql = execSync('npx drizzle-kit export --sql', {
-			encoding: 'utf8',
-			stdio: ['ignore', 'pipe', 'pipe']
+	const tmp = () => mkdtempSync(path.join(tmpdir(), 'dws-schema-'));
+	const migrateScript = (file: string) =>
+		execSync('npx tsx scripts/migrate.ts', {
+			env: { ...process.env, DATABASE_URL: file },
+			stdio: 'pipe'
 		});
-		const fresh = new Database(':memory:');
-		fresh.exec(sql);
+
+	it('migrasi berversi pada DB kosong (instal pertama produksi) == skema hasil `push`', () => {
+		const file = path.join(tmp(), 'fresh.db');
+		migrateScript(file);
+		const migrated = new Database(file, { readonly: true });
 		const pushed = new Database(template!, { readonly: true });
-		expect(describeDb(fresh)).toEqual(describeDb(pushed));
-		fresh.close();
+		expect(describeDb(migrated)).toEqual(describeDb(pushed));
+		const applied = migrated.prepare('select count(*) n from __drizzle_migrations').get() as {
+			n: number;
+		};
+		expect(applied.n).toBeGreaterThan(0);
+		migrated.close();
 		pushed.close();
 	});
 
-	it('`npm run db:migrate-sync` membuat ulang tabel tambahan dengan struktur IDENTIK skema push', () => {
-		// DB produksi lama tidak punya tabel-tabel ini; deploy.sh menyusulnya lewat scripts/migrate.ts
-		const copy = `${template}.migrate-check.db`;
-		try {
-			copyFileSync(template!, copy);
-			const old = new Database(copy);
-			for (const t of ['wishlists', 'reviews', 'product_sizes', 'product_images']) {
-				old.exec(`drop table ${t}`);
-			}
-			old.close();
+	it('menjalankan migrasi dua kali aman (tidak ada yang diterapkan ulang)', () => {
+		const file = path.join(tmp(), 'twice.db');
+		migrateScript(file);
+		const before = new Database(file, { readonly: true });
+		const n1 = (
+			before.prepare('select count(*) n from __drizzle_migrations').get() as { n: number }
+		).n;
+		before.close();
+		migrateScript(file);
+		const after = new Database(file, { readonly: true });
+		expect(
+			(after.prepare('select count(*) n from __drizzle_migrations').get() as { n: number }).n
+		).toBe(n1);
+		after.close();
+	});
 
-			execSync('npx tsx scripts/migrate.ts', {
-				env: { ...process.env, DATABASE_URL: copy },
-				stdio: 'pipe'
-			});
-
-			const migrated = new Database(copy, { readonly: true });
-			const pushed = new Database(template!, { readonly: true });
-			expect(describeDb(migrated)).toEqual(describeDb(pushed));
-			migrated.close();
-			pushed.close();
-		} finally {
-			for (const ext of ['', '-wal', '-shm']) rmSync(copy + ext, { force: true });
+	it('DB lama (setara baseline, tanpa tabel pencatat; tabel & kolom belakangan belum ada) disusul ke skema terbaru', () => {
+		// DB produksi lama: strukturnya setara baseline (0000) tetapi belum punya beberapa tabel/kolom yang
+		// ditambahkan sebelum migrasi berversi ada. deploy.sh menyusulnya otomatis lalu menerapkan migrasi baru.
+		const copy = path.join(tmp(), 'old.db');
+		const old = new Database(copy);
+		old.exec(
+			readFileSync('drizzle/0000_baseline.sql', 'utf8').replaceAll('--> statement-breakpoint', '')
+		);
+		for (const t of ['wishlists', 'reviews', 'product_sizes', 'product_images']) {
+			old.exec(`drop table ${t}`);
 		}
+		old.exec('alter table cart_items drop column is_selected');
+		for (const c of ['province', 'city', 'district', 'village', 'detail']) {
+			old.exec(`alter table users drop column address_${c}`);
+		}
+		old.close();
+
+		migrateScript(copy);
+
+		const migrated = new Database(copy, { readonly: true });
+		const pushed = new Database(template!, { readonly: true });
+		expect(describeDb(migrated)).toEqual(describeDb(pushed));
+		migrated.close();
+		pushed.close();
 	});
 
 	it('semua kunci asing merujuk tabel & kolom yang ada', () => {

@@ -37,6 +37,7 @@ import * as produkDetail from '../../routes/produk/[slug]/+page.server';
 import * as bundleDetail from '../../routes/bundling/[slug]/+page.server';
 import * as keranjang from '../../routes/keranjang/+page.server';
 import * as checkout from '../../routes/checkout/+page.server';
+import * as profil from '../../routes/profil/+page.server';
 import { CATALOG_PAGE_SIZE } from '../constants';
 import {
 	GUEST,
@@ -56,6 +57,28 @@ import {
 useOrdersFixture();
 
 /* ====================================================================== */
+/** Isian alamat baru di form checkout */
+const ADDR = {
+	addressMode: 'baru',
+	province: 'Jawa Barat',
+	city: 'Kabupaten Subang',
+	district: 'Subang',
+	village: 'Soklat',
+	addressDetail: 'Jl. Contoh No. 1',
+	postalCode: '41211'
+};
+const RECIPIENT = { recipientName: SHIP.recipientName, recipientPhone: SHIP.recipientPhone };
+
+/** Panggilan POST ke action checkout oleh `buyerId` */
+const ev = (fields: Record<string, string>) => {
+	const fd = new FormData();
+	for (const [k, v] of Object.entries(fields)) fd.set(k, v);
+	return {
+		locals: U(buyerId),
+		request: new Request('http://x', { method: 'POST', body: fd })
+	} as never;
+};
+
 describe('katalog & detail (SRS-F-005, TC-005-*)', () => {
 	const url = (qs = '') => new URL(`http://x/produk${qs}`);
 
@@ -292,31 +315,95 @@ describe('katalog & detail (SRS-F-005, TC-005-*)', () => {
 
 	it('checkout action: validasi alamat (TC-009-07), sukses → redirect ke pesanan, harga form diabaikan', async () => {
 		await cartAdd(buyerId, 'product', kaosId, 1);
-		const ev = (fields: Record<string, string>) => {
-			const fd = new FormData();
-			for (const [k, v] of Object.entries(fields)) fd.set(k, v);
-			return {
-				locals: U(buyerId),
-				request: new Request('http://x', { method: 'POST', body: fd })
-			} as never;
-		};
 		const bad = (await checkout.actions.default(
-			ev({ recipientName: 'Budi', recipientPhone: '081234567890', shippingAddress: '' })
+			ev({ recipientName: 'Budi', recipientPhone: '081234567890' })
 		)) as { status: number; data: { errors: Record<string, string[]> } };
 		expect(bad.status).toBe(400);
-		expect(bad.data.errors.shippingAddress?.length).toBeGreaterThan(0);
+		expect(bad.data.errors.addressDetail?.length).toBeGreaterThan(0);
 		expect(db.select().from(orders).all()).toHaveLength(0);
 
 		const r = await catchResult(() =>
 			checkout.actions.default(
-				ev({ ...SHIP, total: '1', subtotal: '1', price: '1', saveToProfile: 'on' })
+				ev({ ...RECIPIENT, ...ADDR, total: '1', subtotal: '1', price: '1', saveToProfile: 'on' })
 			)
 		);
 		expect(!r.ok && isRedirect(r.error)).toBe(true);
 		const o = db.select().from(orders).get()!;
 		expect(o.total).toBe(115_000);
-		expect(db.select().from(users).where(eq(users.id, buyerId)).get()!.address).toBe(
-			SHIP.shippingAddress
+		const u = db.select().from(users).where(eq(users.id, buyerId)).get()!;
+		expect(o.shippingAddress).toBe(
+			'Jl. Contoh No. 1, Desa/Kel. Soklat, Kec. Subang, Kabupaten Subang, Jawa Barat 41211'
 		);
+		expect(u.address).toBe(o.shippingAddress);
+		expect(u.addressCity).toBe('Kabupaten Subang');
+		expect(u.addressDetail).toBe('Jl. Contoh No. 1');
+	});
+	it('checkout: alamat default profil dipakai dari DB (kolom formulir diabaikan); tidak ada default → ditolak', async () => {
+		await cartAdd(buyerId, 'product', kaosId, 1);
+
+		// belum punya alamat default
+		const none = (await checkout.actions.default(ev({ ...RECIPIENT, addressMode: 'profil' }))) as {
+			status: number;
+			data: { errors: Record<string, string[]> };
+		};
+		expect(none.status).toBe(400);
+		expect(none.data.errors.addressMode?.length).toBeGreaterThan(0);
+		expect(db.select().from(orders).all()).toHaveLength(0);
+
+		db.update(users)
+			.set({
+				addressProvince: 'Jawa Tengah',
+				addressCity: 'Kota Semarang',
+				addressDistrict: 'Tembalang',
+				addressVillage: 'Sendangmulyo',
+				addressPostalCode: '50275',
+				addressDetail: 'Jl. Profil No. 9'
+			})
+			.where(eq(users.id, buyerId))
+			.run();
+
+		const r = await catchResult(() =>
+			// isian alamat baru ikut terkirim tapi harus diabaikan pada mode profil
+			checkout.actions.default(ev({ ...RECIPIENT, ...ADDR, addressMode: 'profil' }))
+		);
+		expect(!r.ok && isRedirect(r.error)).toBe(true);
+		expect(db.select().from(orders).get()!.shippingAddress).toBe(
+			'Jl. Profil No. 9, Desa/Kel. Sendangmulyo, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275'
+		);
+	});
+
+	it('checkout: alamat baru tanpa centang simpan tidak mengubah alamat default', async () => {
+		db.update(users)
+			.set({ addressCity: 'Kota Semarang', addressDetail: 'Jl. Profil No. 9' })
+			.where(eq(users.id, buyerId))
+			.run();
+		await cartAdd(buyerId, 'product', kaosId, 1);
+		const r = await catchResult(() => checkout.actions.default(ev({ ...RECIPIENT, ...ADDR })));
+		expect(!r.ok && isRedirect(r.error)).toBe(true);
+		const u = db.select().from(users).where(eq(users.id, buyerId)).get()!;
+		expect(u.addressCity).toBe('Kota Semarang');
+		expect(u.addressDetail).toBe('Jl. Profil No. 9');
+	});
+	it('profil: simpan alamat default terstruktur, tolak sebagian, kosongkan semua = hapus', async () => {
+		const save = (fields: Record<string, string>) =>
+			(profil.actions.updateProfile as (e: never) => Promise<unknown>)(
+				ev({ name: 'Budi Santoso', phone: '081234567890', ...fields })
+			) as Promise<{ status?: number; profileSuccess?: boolean }>;
+		const row = () => db.select().from(users).where(eq(users.id, buyerId)).get()!;
+
+		const partial = await save({ province: 'Jawa Barat', city: 'Kabupaten Subang' });
+		expect(partial.status).toBe(400);
+		expect(row().addressCity).toBeNull();
+
+		const ok = await save({ ...ADDR });
+		expect(ok.profileSuccess).toBe(true);
+		expect(row().addressVillage).toBe('Soklat');
+		expect(row().address).toBe(
+			'Jl. Contoh No. 1, Desa/Kel. Soklat, Kec. Subang, Kabupaten Subang, Jawa Barat 41211'
+		);
+
+		expect((await save({})).profileSuccess).toBe(true);
+		expect(row().address).toBeNull();
+		expect(row().addressDetail).toBeNull();
 	});
 });

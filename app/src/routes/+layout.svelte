@@ -7,6 +7,7 @@
 	import { navigating, page } from '$app/state';
 	import favicon from '#lib/assets/favicon.svg';
 	import { onPageShow, onSubmit } from '#lib/actions/submit-guard';
+	import type { PromoVoucher } from '#lib/utils/promo';
 	import { toast, toastFromForm } from '#lib/stores/toast.svelte';
 	import { DETAIL_ROUTES, SLOW_NAV_MS, nav } from '#lib/stores/navigation.svelte';
 
@@ -15,6 +16,8 @@
 	const isStaffArea = $derived(
 		page.url.pathname.startsWith('/admin') || page.url.pathname.startsWith('/owner')
 	);
+	// Voucher banner promo dikirim oleh load beranda (`/`); halaman lain tidak punya → daftar kosong
+	const promos = $derived((page.data as { promos?: PromoVoucher[] }).promos ?? []);
 	const isStaffLogin = $derived(page.url.pathname === '/staff/login');
 	const isAuthPage = $derived(
 		page.url.pathname === '/login' || page.url.pathname === '/register' || isStaffLogin
@@ -67,7 +70,7 @@
 		: ''}"
 >
 	{#if !isAuthPage && !isPrintView}
-		<Navbar user={data.user} cartCount={data.cartCount} store={data.store} />
+		<Navbar user={data.user} cartCount={data.cartCount} store={data.store} {promos} />
 	{/if}
 
 	{#if nav.slowTo}

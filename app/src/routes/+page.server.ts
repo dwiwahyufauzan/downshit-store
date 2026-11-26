@@ -3,8 +3,9 @@ import { db } from '#lib/server/db';
 import { bundleItems, bundles, categories, products } from '#lib/server/db/schema';
 import { effectiveBundleStock } from '#lib/utils/bundle';
 import { getProductStats } from '#lib/server/recommendations';
+import { listHomeVouchers } from '#lib/server/vouchers';
 
-export const load = async () => {
+export const load = async ({ locals }) => {
 	const latestProducts = await db
 		.select({
 			id: products.id,
@@ -99,6 +100,8 @@ export const load = async () => {
 			reviewCount: stats.get(p.id)?.reviewCount ?? 0
 		})),
 		bundles: bundlesWithDetails,
-		categories: allCategories
+		categories: allCategories,
+		// banner promo: voucher aktif yang ditandai admin; pelanggan yang jatahnya habis tidak melihatnya
+		promos: listHomeVouchers(db, locals.user?.role === 'konsumen' ? locals.user.id : null)
 	};
 };

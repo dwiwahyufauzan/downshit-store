@@ -158,6 +158,15 @@
 								<td class="max-w-xs text-sm text-smoke">
 									{r.comment ?? '—'}
 									{#if !r.isVisible}<span class="badge badge-muted ml-1">Tersembunyi</span>{/if}
+									{#if r.photos.length > 0}
+										<div class="mt-2 flex gap-1.5">
+											{#each r.photos as ph (ph.url)}
+												<a href={ph.url} target="_blank" rel="noopener noreferrer">
+													<img src={ph.thumbUrl} alt="Foto ulasan" class="h-10 w-10 object-cover" />
+												</a>
+											{/each}
+										</div>
+									{/if}
 								</td>
 								<td class="text-sm whitespace-nowrap">{r.userName}</td>
 								<td class="text-xs whitespace-nowrap text-smoke">{formatDate(r.createdAt)}</td>

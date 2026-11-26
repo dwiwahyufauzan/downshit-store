@@ -42,7 +42,14 @@ import {
 	stockMovements,
 	users
 } from './db/schema';
-import { addToCart, availableStock, getCartDetails, updateCartItemQuantity } from './cart';
+import {
+	addToCart,
+	availableStock,
+	getCartDetails,
+	setAllCartItemsSelected,
+	setCartItemSelected,
+	updateCartItemQuantity
+} from './cart';
 import { cancelOrder, createOrderFromCart, OrderError } from './orders';
 import { submitPaymentProof } from './order-flow';
 import {
@@ -169,6 +176,48 @@ describe('keranjang (SRS-F-009, TC-009-01…05)', () => {
 		expect(by(hoodieId).problem).toBeNull();
 		expect(c.subtotal).toBe(250_000); // hanya hoodie
 	});
+
+	it('item baru otomatis tercentang; subtotal hanya menghitung yang tercentang', async () => {
+		await cartAdd(buyerId, 'product', kaosId, 2);
+		await cartAdd(buyerId, 'product', topiId, 1);
+		let c = await getCartDetails(buyerId);
+		expect(c.items.every((i) => i.isSelected)).toBe(true);
+		expect(c.subtotal).toBe(250_000);
+
+		const kaosLine = c.items.find((i) => i.productId === kaosId)!;
+		await setCartItemSelected(buyerId, kaosLine.id, false);
+		c = await getCartDetails(buyerId);
+		expect(c.items).toHaveLength(2); // tidak dihapus
+		expect(c.subtotal).toBe(50_000); // hanya topi
+		expect(c.selectedUnits).toBe(1);
+		expect(c.totalItems).toBe(3);
+	});
+
+	it('pilih semua / kosongkan pilihan; baris milik orang lain tidak terpengaruh', async () => {
+		await cartAdd(buyerId, 'product', kaosId, 1);
+		await cartAdd(buyerId, 'product', topiId, 1);
+		await cartAdd(buyer2Id, 'product', kaosId, 1);
+		await setAllCartItemsSelected(buyerId, false);
+		expect((await getCartDetails(buyerId)).items.some((i) => i.isSelected)).toBe(false);
+		expect((await getCartDetails(buyer2Id)).items[0].isSelected).toBe(true);
+
+		const other = (await getCartDetails(buyer2Id)).items[0];
+		await setCartItemSelected(buyerId, other.id, false); // bukan miliknya
+		expect((await getCartDetails(buyer2Id)).items[0].isSelected).toBe(true);
+
+		await setAllCartItemsSelected(buyerId, true);
+		expect((await getCartDetails(buyerId)).items.every((i) => i.isSelected)).toBe(true);
+	});
+
+	it('menambah lagi item yang tidak tercentang ikut mencentangnya', async () => {
+		await cartAdd(buyerId, 'product', kaosId, 1);
+		const [line] = (await getCartDetails(buyerId)).items;
+		await setCartItemSelected(buyerId, line.id, false);
+		await cartAdd(buyerId, 'product', kaosId, 1);
+		const [after] = (await getCartDetails(buyerId)).items;
+		expect(after.isSelected).toBe(true);
+		expect(after.quantity).toBe(2);
+	});
 });
 
 /* ====================================================================== */
@@ -258,6 +307,48 @@ describe('checkout atomik (SRS-F-009, BR-06/07/08/13/17/18/20)', () => {
 
 	it('keranjang kosong ditolak (TC-009-08)', async () => {
 		await expect(createOrderFromCart(buyerId, SHIP)).rejects.toThrow(/kosong/i);
+	});
+
+	it('hanya item tercentang yang dipesan; sisanya tetap di keranjang', async () => {
+		await cartAdd(buyerId, 'product', kaosId, 2);
+		await cartAdd(buyerId, 'product', topiId, 1);
+		const topi = (await getCartDetails(buyerId)).items.find((i) => i.productId === topiId)!;
+		await setCartItemSelected(buyerId, topi.id, false);
+
+		const { orderId } = await createOrderFromCart(buyerId, SHIP);
+
+		const items = db.select().from(orderItems).where(eq(orderItems.orderId, orderId)).all();
+		expect(items).toHaveLength(1);
+		expect(items[0].productId).toBe(kaosId);
+		expect(orderOf(orderId).subtotal).toBe(200_000);
+		expect(stockOf(kaosId)).toBe(8);
+		expect(stockOf(topiId)).toBe(5); // tidak tersentuh
+
+		const left = (await getCartDetails(buyerId)).items;
+		expect(left).toHaveLength(1);
+		expect(left[0].productId).toBe(topiId);
+		expect(left[0].isSelected).toBe(false);
+	});
+
+	it('tidak ada item tercentang → ditolak, keranjang & stok utuh', async () => {
+		await cartAdd(buyerId, 'product', kaosId, 2);
+		await setAllCartItemsSelected(buyerId, false);
+		await expect(createOrderFromCart(buyerId, SHIP)).rejects.toThrow(/Pilih minimal satu item/);
+		expect(db.select().from(orders).all()).toHaveLength(0);
+		expect(stockOf(kaosId)).toBe(10);
+		expect(db.select().from(cartItems).all()).toHaveLength(1);
+	});
+
+	it('item bermasalah yang tidak tercentang tidak menghalangi checkout item lain', async () => {
+		await cartAdd(buyerId, 'product', kaosId, 1);
+		await cartAdd(buyerId, 'product', topiId, 1);
+		db.update(products).set({ isActive: false }).where(eq(products.id, topiId)).run();
+		const topi = (await getCartDetails(buyerId)).items.find((i) => i.productId === topiId)!;
+		await setCartItemSelected(buyerId, topi.id, false);
+
+		const { orderId } = await createOrderFromCart(buyerId, SHIP);
+		expect(orderOf(orderId).subtotal).toBe(100_000);
+		expect(db.select().from(cartItems).all()).toHaveLength(1); // topi tetap di keranjang
 	});
 
 	it('stok kurang di item kedua → rollback total, keranjang & stok utuh (TC-009-09)', async () => {

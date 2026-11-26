@@ -11,7 +11,8 @@
  *   (refund manual lewat dashboard Midtrans) dan dicatat di log aktivitas.
  */
 import { and, eq, isNotNull } from 'drizzle-orm';
-import { db, transact } from './db';
+import { afterCommit, db, transact } from './db';
+import { notifyOrder } from './notifications';
 import { orderItems, orders, payments, users } from './db/schema';
 import { logActivity } from './activity';
 import { OrderError } from './order-error';
@@ -330,6 +331,7 @@ export async function applyGatewayStatus(s: MidtransStatus): Promise<ApplyResult
 					`Pembayaran pesanan ${o.code} lunas otomatis lewat ${label}`,
 					tx
 				);
+				afterCommit(tx, () => notifyOrder(o.id, 'dibayar'));
 				return 'applied';
 			}
 

@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Backup SQLite (konsisten walau aplikasi sedang menulis) + folder uploads. Retensi default 14 hari.
 #   bash deploy/scripts/backup.sh
-# Variabel (opsional): DOWNSHIT_BASE, ENV_FILE, DB_FILE, UPLOAD_DIR, BACKUP_DIR, KEEP_DAYS, SQLITE3
+# Variabel (opsional): DOWNSHIT_BASE, ENV_FILE, DB_FILE, UPLOAD_DIR, BACKUP_DIR, KEEP_DAYS, SQLITE3,
+#   OFFSITE_RCLONE_REMOTE (salin juga ke luar server via rclone, lihat offsite.sh),
+#   BACKUP_HEARTBEAT_URL (ping healthchecks.io HANYA bila backup + offsite sukses)
 #
 # Mengapa bukan `cp downshit.db`? Mode WAL menyimpan data terbaru di berkas -wal; menyalin berkas utama saja
 # bisa menghasilkan salinan rusak/usang. `sqlite3 .backup` memakai API backup SQLite (snapshot konsisten).
@@ -61,4 +63,19 @@ find "$BACKUP_DIR" -type f \( -name 'db-*.sqlite.gz' -o -name 'uploads-*.tar.gz'
 
 trap - EXIT
 rm -f "$TMP" "$TMP-wal" "$TMP-shm"
+
+# 4) salinan di luar server (disk server rusak/hilang = semua backup lokal ikut hilang)
+OFFSITE="${OFFSITE_RCLONE_REMOTE:-$(env_get OFFSITE_RCLONE_REMOTE)}"
+if [ -n "$OFFSITE" ]; then
+  # gagal di sini = skrip keluar non-nol (cron mencatat & heartbeat TIDAK terkirim); backup lokal tetap tersimpan
+  bash "$(dirname "$0")/offsite.sh" "$DB_OUT" ${UP_OUT:+"$UP_OUT"}
+else
+  log "peringatan: OFFSITE_RCLONE_REMOTE kosong; backup HANYA ada di server ini"
+fi
+
+BEAT="${BACKUP_HEARTBEAT_URL:-$(env_get BACKUP_HEARTBEAT_URL)}"
+if [ -n "$BEAT" ]; then
+  curl -fsS -m 10 --retry 3 -o /dev/null "$BEAT" || log "peringatan: heartbeat backup gagal dikirim"
+fi
+
 echo "[$(date '+%F %T')] OK  $(basename "$DB_OUT") ($(du -h "$DB_OUT" | cut -f1))  ${UP_OUT:+$(basename "$UP_OUT") ($(du -h "$UP_OUT" | cut -f1))}"

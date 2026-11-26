@@ -1,22 +1,13 @@
 import { fail } from '@sveltejs/kit';
-import { and, asc, count, desc, eq, isNull, lte } from 'drizzle-orm';
-import { db, transact } from '#lib/server/db';
-import {
-	cartItems,
-	categories,
-	productImages,
-	products,
-	stockMovements
-} from '#lib/server/db/schema';
+import { eq } from 'drizzle-orm';
+import { transact } from '#lib/server/db';
+import { cartItems, productImages, products, stockMovements } from '#lib/server/db/schema';
 import { requireRole } from '#lib/server/guards';
-import { contains, idParam, pageParam } from '#lib/server/sql';
-import { getSettings } from '#lib/server/settings';
-import { getSizesFor } from '#lib/server/sizes';
+import { idParam, pageParam } from '#lib/server/sql';
+import { listAdminProducts } from '#lib/server/admin-lists';
 import { productUsageIn } from '#lib/server/product-usage';
 import { deleteImageIfUnused } from '#lib/server/image-refs';
 import { logActivity } from '#lib/server/activity';
-
-const PER_PAGE = 15;
 
 export const load = async ({ url, locals }) => {
 	requireRole(locals, 'admin');
@@ -25,70 +16,8 @@ export const load = async ({ url, locals }) => {
 	const categoryId = idParam(url.searchParams.get('cat') ?? undefined);
 	const lowOnly = url.searchParams.get('low') === 'true';
 
-	const { lowStock } = await getSettings();
-
-	const whereConditions = and(
-		isNull(products.deletedAt),
-		q ? contains(products.name, q) : undefined,
-		categoryId ? eq(products.categoryId, categoryId) : undefined,
-		lowOnly ? lte(products.stock, lowStock) : undefined
-	);
-
-	const [totalCountRow] = await db.select({ count: count() }).from(products).where(whereConditions);
-
-	const totalItems = totalCountRow?.count ?? 0;
-	const totalPages = Math.ceil(totalItems / PER_PAGE);
-	const page = Math.min(pageParam(url), Math.max(1, totalPages)); // ?page=999 → halaman terakhir
-
-	const rows = await db
-		.select({
-			id: products.id,
-			name: products.name,
-			slug: products.slug,
-			price: products.price,
-			stock: products.stock,
-			imageUrl: products.imageUrl,
-			isBundleable: products.isBundleable,
-			isActive: products.isActive,
-			categoryName: categories.name
-		})
-		.from(products)
-		.leftJoin(categories, eq(categories.id, products.categoryId))
-		.where(whereConditions)
-		.orderBy(asc(products.stock), desc(products.id))
-		.limit(PER_PAGE)
-		.offset((page - 1) * PER_PAGE);
-
-	const allCategories = await db
-		.select({ id: categories.id, name: categories.name })
-		.from(categories)
-		.orderBy(categories.name);
-
-	// Ringkasan stok per ukuran (produk tanpa ukuran → daftar kosong)
-	const sizesOf = getSizesFor(
-		db,
-		rows.map((r) => r.id)
-	);
-
-	const [anyRow] = await db.select({ n: count() }).from(products).where(isNull(products.deletedAt));
-
-	return {
-		products: rows.map((r) => ({ ...r, sizes: sizesOf.get(r.id) ?? [] })),
-		totalAll: anyRow?.n ?? 0,
-		categories: allCategories,
-		lowStock,
-		pagination: {
-			page,
-			perPage: PER_PAGE,
-			totalItems,
-			totalPages
-		},
-		filters: {
-			q,
-			categoryId,
-			lowOnly
-		}
-	};
+	const data = await listAdminProducts({ q, categoryId, lowOnly, page: pageParam(url) });
+	return { ...data, filters: { q, categoryId, lowOnly } };
 };
 
 export const actions = {

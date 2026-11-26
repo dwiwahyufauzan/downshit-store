@@ -32,11 +32,11 @@ const cond = (from: Date, to: Date, status: StatusFilter = 'semua') => {
 
 const n = (v: unknown) => Number(v ?? 0);
 
-/** Ringkasan periode: revenue = Σ subtotal (tanpa ongkir), gross = Σ total (omzet) */
+/** Ringkasan periode: revenue = Σ (subtotal − diskon voucher), tanpa ongkir; gross = Σ total (omzet) */
 export async function salesSummary(from: Date, to: Date, status: StatusFilter = 'semua') {
 	const [r] = await db
 		.select({
-			revenue: sql<number>`COALESCE(SUM(${orders.subtotal}), 0)`,
+			revenue: sql<number>`COALESCE(SUM(${orders.subtotal} - ${orders.discount}), 0)`,
 			shipping: sql<number>`COALESCE(SUM(${orders.shippingCost}), 0)`,
 			gross: sql<number>`COALESCE(SUM(${orders.total}), 0)`,
 			orders: sql<number>`COUNT(*)`
@@ -72,7 +72,7 @@ export async function dailyRevenue(from: Date, to: Date, status: StatusFilter = 
 	const rows = await db
 		.select({
 			day,
-			revenue: sql<number>`SUM(${orders.subtotal})`,
+			revenue: sql<number>`SUM(${orders.subtotal} - ${orders.discount})`,
 			orders: sql<number>`COUNT(*)`
 		})
 		.from(orders)
@@ -185,6 +185,7 @@ export async function salesList(
 			customer: users.name,
 			status: orders.status,
 			subtotal: orders.subtotal,
+			discount: orders.discount,
 			shipping: orders.shippingCost,
 			total: orders.total
 		})

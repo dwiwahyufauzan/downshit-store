@@ -6,7 +6,13 @@ import { adjustSchema } from './stock';
 import { settingsSchema } from './settings';
 import { bundleCreateSchema } from './bundle';
 
-const prod = { name: 'Kaos Uji', categoryId: '1', price: '50000', stock: '5' };
+const prod = {
+	name: 'Kaos Uji',
+	categoryId: '1',
+	price: '50000',
+	stock: '5',
+	weightGrams: '250'
+};
 const msg = (r: { success: boolean; error?: { issues: { message: string }[] } }) =>
 	r.success ? '' : r.error!.issues.map((i) => i.message).join('|');
 

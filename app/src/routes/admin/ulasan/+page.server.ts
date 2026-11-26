@@ -5,6 +5,7 @@ import { orders, products, reviews, users } from '#lib/server/db/schema';
 import { requireRole } from '#lib/server/guards';
 import { contains, idParam, pageParam } from '#lib/server/sql';
 import { logActivity } from '#lib/server/activity';
+import { photosOf } from '#lib/server/reviews';
 import type { Actions, PageServerLoad } from './$types';
 
 const PER_PAGE = 15;
@@ -63,8 +64,13 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		.from(reviews)
 		.where(eq(reviews.isVisible, false));
 
+	const photos = photosOf(
+		db,
+		rows.map((r) => r.id)
+	);
+
 	return {
-		reviews: rows,
+		reviews: rows.map((r) => ({ ...r, photos: photos.get(r.id) ?? [] })),
 		totalAll: total,
 		hiddenCount: hidden,
 		filters: { q, rating, tampil: visible === null ? '' : tampil },

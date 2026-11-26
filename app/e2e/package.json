@@ -1,0 +1,16 @@
+{
+	"name": "downshit-e2e",
+	"private": true,
+	"type": "module",
+	"description": "Tes end-to-end (Playwright). Paket sendiri agar node_modules aplikasi tidak tersentuh.",
+	"scripts": {
+		"test": "playwright test",
+		"test:headed": "playwright test --headed",
+		"install:browser": "playwright install chromium",
+		"report": "playwright show-report"
+	},
+	"devDependencies": {
+		"@playwright/test": "1.65.1",
+		"@types/node": "^24.0.0"
+	}
+}

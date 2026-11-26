@@ -89,6 +89,12 @@
 				<a href="/register" class="link font-semibold text-ink">Daftar sebagai konsumen</a>
 			</p>
 
+			{#if data.justReset && !form?.message}
+				<div class="mt-6 border-l-4 border-ink bg-mist px-4 py-3 text-sm font-medium" role="status">
+					Password berhasil diubah. Silakan masuk dengan password baru.
+				</div>
+			{/if}
+
 			{#if form?.message}
 				<div
 					class="mt-6 border-l-4 border-danger bg-danger-bg px-4 py-3 text-sm font-medium text-danger"
@@ -148,7 +154,9 @@
 					{/if}
 					<p class="hint">
 						Lupa password?
-						{#if forgotUrl}
+						{#if data.mailEnabled}
+							<a href="/lupa-password" class="link text-ink">Atur ulang lewat email</a>.
+						{:else if forgotUrl}
 							<a href={forgotUrl} target="_blank" rel="noopener noreferrer" class="link text-ink">
 								Hubungi admin via WhatsApp
 							</a>
@@ -178,11 +186,6 @@
 					</div>
 				{/if}
 			</form>
-
-			<p class="mt-8 border-t border-line pt-5 text-xs text-smoke">
-				Admin atau owner toko?
-				<a href="/staff/login" class="link text-ink">Masuk lewat portal staf</a>
-			</p>
 		</div>
 	</div>
 </div>

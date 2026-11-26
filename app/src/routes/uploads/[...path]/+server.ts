@@ -12,7 +12,7 @@ const ROOT = path.resolve(UPLOAD_DIR ?? './uploads');
 
 // Allow-list nama berkas: hanya folder dikenal + nama UUID/slug + ekstensi gambar.
 // Hasil upload baru selalu .webp; ekstensi jpg/png hanya untuk berkas lama sebelum re-encode WebP.
-const ALLOWED = /^(products|bundles|proofs)\/[\w-]+\.(webp|jpe?g|png)$/;
+const ALLOWED = /^(products|bundles|reviews|proofs)\/[\w-]+\.(webp|jpe?g|png)$/;
 const MIME: Record<string, string> = {
 	webp: 'image/webp',
 	jpg: 'image/jpeg',

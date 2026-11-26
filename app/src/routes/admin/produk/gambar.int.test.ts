@@ -96,6 +96,7 @@ describe('Multi-gambar produk (tambah, edit, dan galeri detail)', () => {
 		fd.set('name', 'Oversized Tee Multi');
 		fd.set('categoryId', String(catId));
 		fd.set('price', '150000');
+		fd.set('weightGrams', '250');
 		fd.set('stock', '20');
 		fd.set('isBundleable', 'on');
 		fd.set('isActive', 'on');
@@ -155,6 +156,7 @@ describe('Multi-gambar produk (tambah, edit, dan galeri detail)', () => {
 		fdCreate.set('name', 'Boxy Hoodie Multi');
 		fdCreate.set('categoryId', String(catId));
 		fdCreate.set('price', '300000');
+		fdCreate.set('weightGrams', '250');
 		fdCreate.set('stock', '15');
 		fdCreate.append('images', img1);
 		fdCreate.append('images', img2);
@@ -189,6 +191,7 @@ describe('Multi-gambar produk (tambah, edit, dan galeri detail)', () => {
 		fdEdit.set('name', 'Boxy Hoodie Multi V2');
 		fdEdit.set('categoryId', String(catId));
 		fdEdit.set('price', '320000');
+		fdEdit.set('weightGrams', '250');
 		fdEdit.append('deleteImageIds', String(firstImgId));
 		fdEdit.set('primaryImageUrl', secondImgUrl);
 		fdEdit.append('images', img3);

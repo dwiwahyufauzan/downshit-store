@@ -65,6 +65,7 @@ const base = () => ({
 	name: 'Kaos Uji',
 	categoryId: String(catId),
 	price: '120000',
+	weightGrams: '250',
 	description: 'tes',
 	isActive: 'on',
 	isBundleable: 'on'

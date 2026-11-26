@@ -33,8 +33,11 @@ describe('POST /internal/maintenance (TC-017-06)', () => {
 			'completedOrders',
 			'expiredOrders',
 			'purgedLoginAttempts',
+			'purgedPasswordResets',
+			'purgedRateHits',
 			'purgedSessions',
-			'reconciledGatewayPayments'
+			'reconciledGatewayPayments',
+			'restockEmails'
 		]);
 		for (const v of Object.values(r.body as Record<string, number>))
 			expect(v).toBeGreaterThanOrEqual(0);

@@ -32,9 +32,10 @@ import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { isRedirect } from '@sveltejs/kit';
 import { db } from './db';
-import { payments } from './db/schema';
+import { payments, reviewImages } from './db/schema';
 import { createSession } from './auth';
 import { cancelOrder } from './orders';
+import { completeOrder, shipOrder } from './order-flow';
 import * as detail from '../../routes/pesanan/[kode]/+page.server';
 import * as riwayat from '../../routes/pesanan/+page.server';
 import * as uploads from '../../routes/uploads/[...path]/+server';
@@ -250,5 +251,87 @@ describe('bukti pembayaran: akses (TC-010-03, TC-017-01)', () => {
 		// Cookie staf tanpa sesi pelanggan juga diterima
 		const asAdminOnly = await get(GUEST, staffCookies);
 		expect(asAdminOnly.ok && (asAdminOnly.value as Response).status).toBe(200);
+	});
+});
+
+/* ====================================================================== */
+describe('foto ulasan (route ulas)', () => {
+	const reviewFiles = () =>
+		existsSync(path.join(env.uploads, 'reviews'))
+			? readdirSync(path.join(env.uploads, 'reviews'))
+			: [];
+	const png = () => new File([PNG], 'a.png', { type: 'image/png' });
+
+	async function finishedOrder() {
+		const o = await paidOrder();
+		await shipOrder(o.code, adminId, { courier: 'JNE', trackingNumber: 'JNE1' });
+		await completeOrder(o.code, { id: buyerId, role: 'konsumen' });
+		return o.code;
+	}
+	const ulas = (code: string, fields: Record<string, string>, files: File[]) => {
+		const fd = new FormData();
+		for (const [k, v] of Object.entries(fields)) fd.set(k, v);
+		for (const f of files) fd.append('photos', f);
+		return detail.actions.ulas({
+			params: { kode: code },
+			locals: U(buyerId),
+			request: new Request('http://x', { method: 'POST', body: fd })
+		} as never) as Promise<{ success?: boolean; status?: number; data?: { message: string } }>;
+	};
+	const fields = () => ({ productId: String(kaosId), rating: '5', comment: 'Mantap' });
+
+	it('ulasan dengan 2 foto: tersimpan berurutan, thumbnail ada, tampil di detail pesanan & publik', async () => {
+		const code = await finishedOrder();
+		const r = await ulas(code, fields(), [png(), png()]);
+		expect(r.success).toBe(true);
+
+		const imgs = db.select().from(reviewImages).orderBy(reviewImages.sortOrder).all();
+		expect(imgs).toHaveLength(2);
+		expect(imgs.map((i) => i.sortOrder)).toEqual([0, 1]);
+		expect(imgs[0].imageUrl).toMatch(/^\/uploads\/reviews\/[\w-]+\.webp$/);
+		expect(reviewFiles()).toHaveLength(4); // 2 foto + 2 thumbnail
+
+		const mine = (await detail.load({
+			params: { kode: code },
+			locals: U(buyerId),
+			url: new URL(`http://x/pesanan/${code}`)
+		} as never)) as { reviewables: { review: { photos: { url: string }[] } | null }[] };
+		expect(mine.reviewables.find((p) => p.review)!.review!.photos).toHaveLength(2);
+
+		// folder reviews publik (seperti products): tamu boleh melihat
+		const rel = imgs[0].imageUrl.replace('/uploads/', '');
+		const pub = await catchResult(() =>
+			uploads.GET({
+				params: { path: rel },
+				locals: GUEST,
+				cookies: { get: () => undefined }
+			} as never)
+		);
+		expect(pub.ok && (pub.value as Response).status).toBe(200);
+	});
+
+	it('lebih dari 3 foto / file bukan gambar ditolak dan tidak menyisakan berkas', async () => {
+		const code = await finishedOrder();
+		const before = reviewFiles().length; // tes lain berbagi folder unggahan
+		const many = await ulas(code, fields(), [png(), png(), png(), png()]);
+		expect(many.status).toBe(400);
+		expect(many.data?.message).toMatch(/Maksimal 3 foto/);
+
+		const bad = await ulas(code, fields(), [
+			png(),
+			new File(['bukan gambar'], 'x.png', { type: 'image/png' })
+		]);
+		expect(bad.status).toBe(400);
+		expect(reviewFiles()).toHaveLength(before); // foto pertama yang sempat tersimpan ikut dibersihkan
+		expect(db.select().from(reviewImages).all()).toHaveLength(0);
+	});
+
+	it('ulasan ditolak (mis. sudah pernah mengulas) → foto baru tidak tertinggal', async () => {
+		const code = await finishedOrder();
+		await ulas(code, fields(), [png()]);
+		const before = reviewFiles().length;
+		const again = await ulas(code, fields(), [png()]);
+		expect(again.status).toBe(400);
+		expect(reviewFiles()).toHaveLength(before);
 	});
 });

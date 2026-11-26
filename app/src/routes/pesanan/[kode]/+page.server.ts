@@ -27,7 +27,12 @@ import {
 import { gatewayMode } from '#lib/server/midtrans';
 import { isGatewayMethod } from '#lib/constants';
 import { rateLimit } from '#lib/server/rate-limit';
-import { ReviewError, createReview, getOrderReviewables } from '#lib/server/reviews';
+import {
+	REVIEW_MAX_PHOTOS,
+	ReviewError,
+	createReview,
+	getOrderReviewables
+} from '#lib/server/reviews';
 import { deleteImage, saveImage } from '#lib/server/upload';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -161,16 +166,33 @@ export const actions: Actions = {
 		}
 
 		const fd = await request.formData();
+		// Foto opsional: file kosong (input tak diisi) diabaikan; tiap foto di-encode ulang oleh saveImage
+		const files = fd.getAll('photos').filter((f): f is File => f instanceof File && f.size > 0);
+		if (files.length > REVIEW_MAX_PHOTOS) {
+			return fail(400, { message: `Maksimal ${REVIEW_MAX_PHOTOS} foto per ulasan.` });
+		}
+		const saved: string[] = [];
+		for (const f of files) {
+			const up = await saveImage(f, 'reviews');
+			if (!up.ok) {
+				await Promise.all(saved.map(deleteImage));
+				return fail(400, { message: up.message });
+			}
+			saved.push(up.url);
+		}
+
 		try {
 			const r = await createReview({
 				userId: user.id,
 				orderCode: params.kode,
 				productId: Number(fd.get('productId')),
 				rating: Number(fd.get('rating')),
-				comment: String(fd.get('comment') ?? '')
+				comment: String(fd.get('comment') ?? ''),
+				images: saved
 			});
 			return { success: true, message: `Terima kasih! Ulasan untuk "${r.productName}" tersimpan.` };
 		} catch (e) {
+			await Promise.all(saved.map(deleteImage)); // ulasan ditolak: jangan tinggalkan foto yatim
 			if (e instanceof ReviewError) return fail(400, { message: e.message });
 			throw e;
 		}

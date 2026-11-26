@@ -18,6 +18,7 @@ export type ProductEditFormErrors = {
 	categoryId?: string[];
 	description?: string[];
 	price?: string[];
+	weightGrams?: string[];
 	sizes?: string[];
 	image?: string[];
 	isBundleable?: string[];
@@ -82,6 +83,7 @@ export const actions = {
 			categoryId: fd.get('categoryId'),
 			description: fd.get('description') || undefined,
 			price: fd.get('price'),
+			weightGrams: fd.get('weightGrams'),
 			isBundleable: fd.get('isBundleable') === 'on',
 			isActive: fd.get('isActive') === 'on'
 		};
@@ -238,6 +240,7 @@ export const actions = {
 						categoryId: d.categoryId,
 						description: d.description ?? null,
 						price: d.price,
+						weightGrams: d.weightGrams,
 						imageUrl: finalPrimaryUrl,
 						isBundleable: d.isBundleable,
 						isActive: d.isActive

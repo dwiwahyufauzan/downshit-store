@@ -1,6 +1,6 @@
 import { and, desc, eq, lt } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
-import { db, transact, type Tx } from './db';
+import { afterCommit, db, transact, type Tx } from './db';
 import { NOW_ISO, orders, payments, shipments } from './db/schema';
 import { canTransition, type Status } from './order-status';
 import { OrderError, expireUnpaidOrders } from './orders';
@@ -8,6 +8,8 @@ import { cancelTransaction } from './midtrans';
 import { enabledMethods, reconcileGatewayPayments } from './gateway-payments';
 import { getSettings } from './settings';
 import { logActivity } from './activity';
+import { notifyOrder } from './notifications';
+import { notifyRestocked } from './stock-alerts';
 import { PAYMENT_NOTE_GATEWAY_REPLACED } from '#lib/constants';
 
 const notFound = () => new OrderError('Pesanan tidak ditemukan', 'not_found');
@@ -105,6 +107,7 @@ export async function confirmPayment(code: string, adminId: number) {
 			`Pembayaran pesanan ${o.code} dikonfirmasi oleh admin`,
 			tx
 		);
+		afterCommit(tx, () => notifyOrder(o.id, 'dibayar'));
 	});
 }
 
@@ -150,6 +153,7 @@ export async function rejectPayment(code: string, adminId: number, reason: strin
 			`Bukti transfer ${o.code} ditolak: ${why}`,
 			tx
 		);
+		afterCommit(tx, () => notifyOrder(o.id, 'ditolak'));
 	});
 }
 
@@ -194,6 +198,7 @@ export async function shipOrder(code: string, adminId: number, d: ShipmentInput)
 			`Pesanan ${o.code} dikirim via ${d.courier} (Resi: ${d.trackingNumber})`,
 			tx
 		);
+		afterCommit(tx, () => notifyOrder(o.id, 'dikirim'));
 	});
 }
 
@@ -287,7 +292,12 @@ let lastLightRun = 0;
 export async function runLightMaintenance() {
 	if (Date.now() - lastLightRun < 300_000) return; // maks 1x per 5 menit
 	lastLightRun = Date.now();
-	const jobs = [expireUnpaidOrders(), autoCompleteShippedOrders(), reconcileGatewayPayments()];
+	const jobs = [
+		expireUnpaidOrders(),
+		autoCompleteShippedOrders(),
+		reconcileGatewayPayments(),
+		notifyRestocked()
+	];
 	for (const r of await Promise.allSettled(jobs)) {
 		if (r.status === 'rejected') console.error('[maintenance error]:', r.reason);
 	}

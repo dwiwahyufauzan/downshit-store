@@ -1,5 +1,5 @@
-import { and, asc, count, eq, lt } from 'drizzle-orm';
-import { db, transact } from './db';
+import { and, asc, count, eq, inArray, lt } from 'drizzle-orm';
+import { afterCommit, db, transact } from './db';
 import {
 	NOW_ISO,
 	bundleItems,
@@ -23,6 +23,7 @@ import {
 import { getSettings } from './settings';
 import { checkSize } from './cart';
 import { decodeSelection } from '#lib/utils/sizes';
+import { addressColumns, type AddressParts } from '#lib/utils/address';
 import { CANCEL_REASON_EXPIRED, PAYMENT_NOTE_ORDER_CANCELLED } from '#lib/constants';
 import { logActivity } from './activity';
 import { generateOrderCode } from './codes';
@@ -30,6 +31,8 @@ import { canCancel, type Status } from './order-status';
 import { OrderError } from './order-error';
 import { cancelTransaction } from './midtrans';
 import { syncPendingForOrder } from './gateway-payments';
+import { notifyOrder } from './notifications';
+import { checkVoucher, redeemVoucher, releaseVoucher } from './vouchers';
 
 export { OrderError };
 
@@ -40,6 +43,14 @@ type ShippingInfo = {
 	notes?: string;
 	/** Simpan HP & alamat penerima sebagai default profil konsumen */
 	saveToProfile?: boolean;
+	/** Alamat terstruktur yang ikut disimpan ke profil; tanpa ini hanya teks alamat (kolom terstruktur dikosongkan) */
+	addressParts?: AddressParts;
+	/** Kode desa/kelurahan (Kemendagri) tujuan; ikut disimpan ke pesanan dan (bila diminta) profil */
+	villageCode?: string | null;
+	/** Kode voucher yang dipakai; divalidasi ulang & kuotanya diambil di dalam transaksi pesanan */
+	voucherCode?: string;
+	/** Layanan kirim terpilih (harga sudah dihitung ulang server). Tanpa ini: ongkir flat pengaturan toko */
+	shipping?: { cost: number; service: string | null; etd: string | null };
 };
 
 /** Kode pesanan acak bentrok dengan yang sudah ada (indeks unik uq_orders_code) — sangat jarang. */
@@ -77,9 +88,13 @@ async function createOrderOnce(userId: number, ship: ShippingInfo) {
 		const cart = tx.select().from(carts).where(eq(carts.userId, userId)).get();
 		if (!cart) throw new OrderError('Keranjang belanja kosong');
 
-		const lines = tx.select().from(cartItems).where(eq(cartItems.cartId, cart.id)).all();
-		if (lines.length === 0) throw new OrderError('Keranjang belanja kosong');
+		const all = tx.select().from(cartItems).where(eq(cartItems.cartId, cart.id)).all();
+		if (all.length === 0) throw new OrderError('Keranjang belanja kosong');
+		// hanya baris yang dicentang yang dipesan; sisanya tetap di keranjang
+		const lines = all.filter((ln) => ln.isSelected);
+		if (lines.length === 0) throw new OrderError('Pilih minimal satu item untuk di-checkout');
 
+		const shippingCost = ship.shipping?.cost ?? cfg.shippingCost;
 		const code = generateOrderCode();
 		// BR-17: batas bayar dari pengaturan toko
 		const expiresAt = new Date(Date.now() + cfg.paymentDeadlineHours * 3_600_000).toISOString();
@@ -91,11 +106,15 @@ async function createOrderOnce(userId: number, ship: ShippingInfo) {
 				userId,
 				status: 'menunggu_pembayaran',
 				subtotal: 0,
-				shippingCost: cfg.shippingCost,
+				shippingCost,
 				total: 0,
 				recipientName: ship.recipientName,
 				recipientPhone: ship.recipientPhone,
 				shippingAddress: ship.shippingAddress,
+				shippingPostalCode: ship.addressParts?.postalCode ?? null,
+				shippingVillageCode: ship.villageCode ?? null,
+				shippingService: ship.shipping?.service ?? null,
+				shippingEtd: ship.shipping?.etd ?? null,
 				notes: ship.notes ?? null,
 				expiresAt
 			})
@@ -198,15 +217,40 @@ async function createOrderOnce(userId: number, ship: ShippingInfo) {
 			}
 		}
 
-		const total = subtotal + cfg.shippingCost;
-		tx.update(orders).set({ subtotal, total }).where(eq(orders.id, orderId)).run();
+		let discount = 0;
+		let appliedCode: string | null = null;
+		if (ship.voucherCode) {
+			const chk = checkVoucher(tx, ship.voucherCode, userId, subtotal);
+			if (!chk.ok) throw new OrderError(chk.message);
+			if (!redeemVoucher(tx, chk.voucher.id, userId, orderId)) {
+				throw new OrderError('Kuota voucher ini baru saja habis.');
+			}
+			discount = chk.discount;
+			appliedCode = chk.voucher.code;
+		}
+		const total = subtotal - discount + shippingCost;
+		tx.update(orders)
+			.set({ subtotal, total, discount, voucherCode: appliedCode })
+			.where(eq(orders.id, orderId))
+			.run();
 		// BR-20: TIDAK ada baris payments di sini; satu baris dibuat per unggahan bukti (order-flow)
 		tx.insert(shipments).values({ orderId, status: 'belum_dikirim' }).run();
-		tx.delete(cartItems).where(eq(cartItems.cartId, cart.id)).run();
+		tx.delete(cartItems)
+			.where(
+				inArray(
+					cartItems.id,
+					lines.map((ln) => ln.id)
+				)
+			)
+			.run();
 
 		if (ship.saveToProfile) {
 			tx.update(users)
-				.set({ phone: ship.recipientPhone, address: ship.shippingAddress })
+				.set({
+					phone: ship.recipientPhone,
+					...addressColumns(ship.addressParts ?? null, ship.villageCode ?? null),
+					...(ship.addressParts ? {} : { address: ship.shippingAddress })
+				})
 				.where(eq(users.id, userId))
 				.run();
 		}
@@ -219,6 +263,7 @@ async function createOrderOnce(userId: number, ship: ShippingInfo) {
 			`Pesanan ${code} berhasil dibuat senilai Rp ${total.toLocaleString('id-ID')}`,
 			tx
 		);
+		afterCommit(tx, () => notifyOrder(orderId, 'dibuat'));
 
 		return { orderId, code };
 	});
@@ -290,6 +335,8 @@ export async function cancelOrder(
 			}
 		}
 
+		releaseVoucher(tx, orderId); // kuota voucher kembali (juga untuk pesanan kedaluwarsa)
+
 		tx.update(orders)
 			.set({
 				status: 'dibatalkan',
@@ -308,6 +355,7 @@ export async function cancelOrder(
 			`Pesanan ${o.code} dibatalkan (${reason})`,
 			tx
 		);
+		afterCommit(tx, () => notifyOrder(orderId, 'dibatalkan'));
 	});
 	await Promise.all(gatewayToCancel.map(cancelTransaction));
 }

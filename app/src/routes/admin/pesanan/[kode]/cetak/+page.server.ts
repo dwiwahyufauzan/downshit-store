@@ -39,6 +39,9 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			notes: order.notes,
 			subtotal: order.subtotal,
 			shippingCost: order.shippingCost,
+			shippingService: order.shippingService,
+			discount: order.discount,
+			voucherCode: order.voucherCode,
 			total: order.total
 		},
 		items: getOrderItemsWithComponents(order.id),

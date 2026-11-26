@@ -6,6 +6,10 @@ export type StoreSettings = {
 	storeName: string;
 	whatsapp: string;
 	shippingCost: number;
+	/** Kode pos gudang/toko asal pengiriman (kosong = ongkir flat saja) */
+	shippingOriginPostal: string;
+	/** Kode kurir yang ditawarkan, dipisah koma (mis. "jne,jnt,sicepat") */
+	shippingCouriers: string;
 	bankName: string;
 	bankNumber: string;
 	bankHolder: string;
@@ -35,6 +39,8 @@ export const SETTING_KEYS = {
 	storeName: 'store_name',
 	whatsapp: 'store_whatsapp',
 	shippingCost: 'shipping_flat_cost',
+	shippingOriginPostal: 'shipping_origin_postal',
+	shippingCouriers: 'shipping_couriers',
 	bankName: 'bank_name',
 	bankNumber: 'bank_account_number',
 	bankHolder: 'bank_account_holder',
@@ -67,6 +73,8 @@ export async function getSettings(): Promise<StoreSettings> {
 		storeName: map.store_name ?? 'Downshit Store',
 		whatsapp: map.store_whatsapp ?? '6283867358863',
 		shippingCost: num(map.shipping_flat_cost, 15000),
+		shippingOriginPostal: map.shipping_origin_postal ?? '',
+		shippingCouriers: map.shipping_couriers ?? 'jne,jnt,sicepat,anteraja',
 		bankName: map.bank_name ?? 'BCA',
 		bankNumber: map.bank_account_number ?? '1234567890',
 		bankHolder: map.bank_account_holder ?? 'Store Downshit',

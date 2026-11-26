@@ -414,7 +414,7 @@ describe('Pengaturan toko (BR-15, BR-23, TC-016)', () => {
 		payQris: 'on'
 	};
 
-	it('menyimpan SEMUA 15 kunci dan terbaca kembali', async () => {
+	it('menyimpan SEMUA kunci dan terbaca kembali', async () => {
 		const parsed = settingsSchema.parse(valid);
 		await transact((tx) => setSettings(tx, parsed));
 		const rows = Object.fromEntries(
@@ -431,6 +431,8 @@ describe('Pengaturan toko (BR-15, BR-23, TC-016)', () => {
 			storeName: 'Toko Uji',
 			whatsapp: '6281299998888',
 			shippingCost: 20000,
+			shippingOriginPostal: '',
+			shippingCouriers: 'jne,jnt,sicepat,anteraja',
 			bankName: 'BNI',
 			bankNumber: '0123456789',
 			bankHolder: 'Uji',
@@ -446,7 +448,7 @@ describe('Pengaturan toko (BR-15, BR-23, TC-016)', () => {
 		});
 		// simpan ulang (upsert) tidak menggandakan baris
 		await transact((tx) => setSettings(tx, { ...parsed, shippingCost: 25000 }));
-		expect(db.select().from(settings).all()).toHaveLength(15);
+		expect(db.select().from(settings).all()).toHaveLength(Object.keys(SETTING_KEYS).length);
 		expect((await getSettings()).shippingCost).toBe(25000);
 	});
 

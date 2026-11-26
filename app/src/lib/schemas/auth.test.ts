@@ -99,17 +99,37 @@ describe('registerSchema: field & role', () => {
 
 describe('profileSchema (TC-015-02)', () => {
 	it('menerima data valid dan HP/alamat kosong', () => {
-		expect(profileSchema.safeParse({ name: 'Budi', phone: '', address: '' }).success).toBe(true);
+		expect(profileSchema.safeParse({ name: 'Budi', phone: '' }).success).toBe(true);
 		expect(
-			profileSchema.safeParse({ name: 'Budi', phone: '081234567890', address: 'Jl. A No. 1' })
-				.success
+			profileSchema.safeParse({
+				name: 'Budi',
+				phone: '081234567890',
+				province: 'Jawa Barat',
+				city: 'Kabupaten Subang',
+				district: 'Subang',
+				village: 'Soklat',
+				addressDetail: 'Jl. A No. 1',
+				postalCode: '41211'
+			}).success
 		).toBe(true);
 	});
-	it('menolak nama kosong/pendek, HP 123, alamat > 500 karakter', () => {
+	it('menolak alamat sebagian: semua kolom alamat terisi atau semuanya kosong', () => {
+		const r = profileSchema.safeParse({ name: 'Budi', province: 'Jawa Barat', city: 'Subang' });
+		expect(r.success).toBe(false);
+		expect(r.error?.issues.map((i) => i.path[0]).sort()).toEqual([
+			'addressDetail',
+			'district',
+			'postalCode',
+			'village'
+		]);
+	});
+	it('menolak nama kosong/pendek, HP 123, alamat detail > 250 karakter', () => {
 		expect(profileSchema.safeParse({ name: '' }).success).toBe(false);
 		expect(profileSchema.safeParse({ name: 'Bu' }).success).toBe(false);
 		expect(profileSchema.safeParse({ name: 'Budi', phone: '123' }).success).toBe(false);
-		expect(profileSchema.safeParse({ name: 'Budi', address: 'x'.repeat(501) }).success).toBe(false);
+		expect(profileSchema.safeParse({ name: 'Budi', addressDetail: 'x'.repeat(251) }).success).toBe(
+			false
+		);
 	});
 });
 

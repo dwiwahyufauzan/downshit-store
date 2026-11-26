@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
+	import AddressFields from '#lib/components/AddressFields.svelte';
 	import Alert from '#lib/components/Alert.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import { tanggal } from '#lib/utils/format';
@@ -178,21 +179,23 @@
 					{/if}
 				</div>
 
-				<div>
-					<label for="address" class="label">Alamat pengiriman default</label>
-					<textarea
-						id="address"
-						name="address"
-						rows="3"
-						placeholder="Nama jalan, nomor rumah, RT/RW, kelurahan, kecamatan, kota Subang"
-						aria-invalid={form?.profileErrors?.address ? 'true' : undefined}
-						aria-describedby={form?.profileErrors?.address ? 'err-address' : undefined}
-						>{data.profile.address ?? ''}</textarea
-					>
-					{#if form?.profileErrors?.address}
-						<p id="err-address" class="field-error">{form.profileErrors.address[0]}</p>
-					{/if}
-				</div>
+				<fieldset class="space-y-4">
+					<legend class="label">Alamat pengiriman default</legend>
+					<p class="hint !mt-0">
+						Dipakai otomatis di checkout. Kosongkan semua kolom untuk menghapus alamat default.
+					</p>
+					<AddressFields
+						values={{
+							province: data.profile.addressProvince ?? '',
+							city: data.profile.addressCity ?? '',
+							district: data.profile.addressDistrict ?? '',
+							village: data.profile.addressVillage ?? '',
+							addressDetail: data.profile.addressDetail
+						}}
+						errors={form?.profileErrors ?? {}}
+						required={false}
+					/>
+				</fieldset>
 
 				<button type="submit" disabled={loadingProfile} class="btn btn-primary btn-block">
 					{loadingProfile ? 'Menyimpan...' : 'Simpan profil'}

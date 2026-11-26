@@ -52,5 +52,50 @@ export const variables = defineEnvVars({
 			'"true" = payment gateway SIMULASI (mirip Midtrans, tanpa akun & tanpa uang sungguhan) untuk demo/pengujian. Diabaikan bila MIDTRANS_SERVER_KEY terisi',
 		schema: optional
 	},
+	MAIL_PROVIDER: {
+		description:
+			'Pengirim email: "resend" | "brevo" (API HTTP) | "log" (hanya dicatat di log server, untuk dev). Kosong = email nonaktif (lupa password & notifikasi pesanan tidak terkirim)',
+		schema: optional
+	},
+	MAIL_API_KEY: { description: 'API key penyedia email (MAIL_PROVIDER)', schema: optional },
+	MAIL_FROM: {
+		description:
+			'Pengirim email, mis. "Downshit Store <no-reply@domainanda.com>" (domain harus terverifikasi di penyedia)',
+		schema: optional
+	},
+	BITESHIP_API_KEY: {
+		description:
+			'API key Biteship (dashboard.biteship.com) untuk ongkir otomatis per tujuan & berat. Kosong = ongkir flat',
+		schema: optional
+	},
+	BITESHIP_BASE_URL: {
+		description:
+			'Base URL API Biteship (bawaan https://api.biteship.com; ganti hanya untuk pengujian)',
+		schema: optional
+	},
+	WA_PROVIDER: {
+		description:
+			'Pengirim WhatsApp otomatis: "fonnte" (API HTTP) | "log" (hanya dicatat di log, untuk dev). Kosong = nonaktif (tombol wa.me manual tetap ada)',
+		schema: optional
+	},
+	WA_API_TOKEN: { description: 'Token API penyedia WhatsApp (WA_PROVIDER)', schema: optional },
+	LOG_LEVEL: {
+		description: 'Level log minimum: debug | info | warn | error (bawaan info)',
+		schema: optional
+	},
+	LOG_FORMAT: {
+		description:
+			'"json" (satu baris JSON per log, bawaan di produksi) atau "pretty" (terbaca manusia)',
+		schema: optional
+	},
+	SENTRY_DSN: {
+		description:
+			'DSN Sentry/GlitchTip (https://KEY@HOST/PROJECT) untuk melaporkan galat server & klien. Kosong = hanya log',
+		schema: optional
+	},
+	SENTRY_ENVIRONMENT: {
+		description: 'Label lingkungan di Sentry (bawaan: production/development sesuai NODE_ENV)',
+		schema: optional
+	},
 	PUBLIC_APP_NAME: { description: 'Nama aplikasi', public: true, schema: optional }
 });

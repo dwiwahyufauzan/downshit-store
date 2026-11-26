@@ -423,6 +423,24 @@
 			color 0.15s ease,
 			background-color 0.15s ease;
 	}
+	/* Kotak centang berupa tombol submit: jalan tanpa JS, dipakai di keranjang */
+	.check-box {
+		display: inline-flex;
+		height: 1.5rem;
+		width: 1.5rem;
+		flex-shrink: 0;
+		cursor: pointer;
+		align-items: center;
+		justify-content: center;
+		border: 1px solid var(--color-ink);
+		transition:
+			background-color 0.15s ease,
+			color 0.15s ease;
+	}
+	.check-box:focus-visible {
+		outline: 2px solid var(--color-ink);
+		outline-offset: 2px;
+	}
 	.chip:hover {
 		border-color: var(--color-ink);
 		color: var(--color-ink);

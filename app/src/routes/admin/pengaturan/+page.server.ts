@@ -5,13 +5,15 @@ import { transact } from '#lib/server/db';
 import { settingsSchema } from '#lib/schemas/settings';
 import { logActivity } from '#lib/server/activity';
 import { gatewayMode, isGatewayConfigured } from '#lib/server/midtrans';
+import { shippingApiConfigured } from '#lib/server/shipping';
 
 export const load = async ({ locals }) => {
 	requireRole(locals, 'admin');
 	const currentSettings = await getSettings();
 	return {
 		settings: currentSettings,
-		gateway: { configured: isGatewayConfigured(), mode: gatewayMode() }
+		gateway: { configured: isGatewayConfigured(), mode: gatewayMode() },
+		shippingApi: shippingApiConfigured()
 	};
 };
 
@@ -24,6 +26,8 @@ export const actions = {
 			storeName: fd.get('storeName'),
 			whatsapp: fd.get('whatsapp'),
 			shippingCost: fd.get('shippingCost'),
+			shippingOriginPostal: fd.get('shippingOriginPostal') ?? '',
+			shippingCouriers: fd.get('shippingCouriers') ?? 'jne,jnt,sicepat,anteraja',
 			bankName: fd.get('bankName'),
 			bankNumber: fd.get('bankNumber'),
 			bankHolder: fd.get('bankHolder'),

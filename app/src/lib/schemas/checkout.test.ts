@@ -7,18 +7,33 @@ describe('checkoutSchema', () => {
 			{
 				recipientName: 'Budi Santoso',
 				recipientPhone: '081234567890',
-				shippingAddress: 'Jl. Otto Iskandardinata No. 45, Subang, Jawa Barat'
+				province: 'Jawa Barat',
+				city: 'Kabupaten Subang',
+				district: 'Subang',
+				village: 'Soklat',
+				addressDetail: 'Jl. Otto Iskandardinata No. 45',
+				postalCode: '41211'
 			},
 			{
 				recipientName: 'Siti Aminah',
 				recipientPhone: '+628987654321',
-				shippingAddress: 'Komplek Perumahan Subang Asri Blok B No. 12',
+				province: 'Jawa Barat',
+				city: 'Kabupaten Subang',
+				district: 'Subang',
+				village: 'Soklat',
+				addressDetail: 'Jl. Otto Iskandardinata No. 45',
+				postalCode: '41211',
 				notes: 'Tolong titip di pos satpam jika tidak ada orang'
 			},
 			{
 				recipientName: 'Ahmad Fauzi',
 				recipientPhone: '6285211223344',
-				shippingAddress: 'Kp. Sukaresmi RT 02 RW 04, Pagaden, Subang'
+				province: 'Jawa Barat',
+				city: 'Kabupaten Subang',
+				district: 'Subang',
+				village: 'Soklat',
+				addressDetail: 'Jl. Otto Iskandardinata No. 45',
+				postalCode: '41211'
 			}
 		];
 
@@ -35,18 +50,55 @@ describe('checkoutSchema', () => {
 			const result = checkoutSchema.safeParse({
 				recipientName: 'Budi Santoso',
 				recipientPhone: phone,
-				shippingAddress: 'Jl. Otto Iskandardinata No. 45, Subang, Jawa Barat'
+				province: 'Jawa Barat',
+				city: 'Kabupaten Subang',
+				district: 'Subang',
+				village: 'Soklat',
+				addressDetail: 'Jl. Otto Iskandardinata No. 45',
+				postalCode: '41211'
 			});
 			expect(result.success).toBe(false);
 		}
 	});
 
-	it('rejects too short shipping address', () => {
-		const result = checkoutSchema.safeParse({
-			recipientName: 'Budi Santoso',
-			recipientPhone: '081234567890',
-			shippingAddress: 'Subang' // < 10 chars
-		});
+	const base = {
+		recipientName: 'Budi Santoso',
+		recipientPhone: '081234567890'
+	};
+	const fullAddress = {
+		province: 'Jawa Barat',
+		city: 'Kabupaten Subang',
+		district: 'Subang',
+		village: 'Soklat',
+		addressDetail: 'Jl. Otto No. 45',
+		postalCode: '41211'
+	};
+
+	it('alamat baru: kelima kolom wajib diisi', () => {
+		for (const key of Object.keys(fullAddress)) {
+			const result = checkoutSchema.safeParse({
+				...base,
+				...fullAddress,
+				addressMode: 'baru',
+				[key]: ''
+			});
+			expect(result.success).toBe(false);
+			expect(result.error?.issues[0].path).toEqual([key]);
+		}
+	});
+
+	it('menolak alamat detail terlalu singkat', () => {
+		const result = checkoutSchema.safeParse({ ...base, ...fullAddress, addressDetail: 'Jl.' });
 		expect(result.success).toBe(false);
+	});
+
+	it('alamat profil: kolom alamat boleh kosong (dibaca server dari akun)', () => {
+		expect(checkoutSchema.safeParse({ ...base, addressMode: 'profil' }).success).toBe(true);
+	});
+
+	it('mode tidak dikenal ditolak', () => {
+		expect(checkoutSchema.safeParse({ ...base, ...fullAddress, addressMode: 'lain' }).success).toBe(
+			false
+		);
 	});
 });

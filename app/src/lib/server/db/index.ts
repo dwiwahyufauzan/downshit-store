@@ -15,13 +15,46 @@ export const db = drizzle(sqlite, { schema });
 export type DB = typeof db;
 export type Tx = Parameters<Parameters<DB['transaction']>[0]>[0];
 
+// Pekerjaan yang baru boleh jalan SETELAH transaksi benar-benar commit (mis. kirim email).
+const commitQueues = new WeakMap<object, (() => void | Promise<void>)[]>();
+
+/**
+ * Jadwalkan `fn` setelah transaksi `tx` commit. Bila transaksi di-rollback, `fn` dibuang.
+ * Di luar transaksi (executor = `db`) langsung dijalankan. `fn` boleh async; galatnya hanya dicatat.
+ */
+export function afterCommit(exec: typeof db | Tx, fn: () => void | Promise<void>) {
+	const q = commitQueues.get(exec);
+	if (q) q.push(fn);
+	else void run(fn);
+}
+
+async function run(fn: () => void | Promise<void>) {
+	try {
+		await fn();
+	} catch (e) {
+		console.error('[afterCommit]', e instanceof Error ? e.message : e);
+	}
+}
+
 /**
  * Transaksi atomik. Driver better-sqlite3 bersifat SINKRON: callback TIDAK boleh `async`/`await`
  * (melempar "Transaction function cannot return a promise"). Di dalam callback pakai
  * `.get()`, `.all()`, `.run()`. `BEGIN IMMEDIATE` mengunci tulis sejak awal sehingga
  * pengecekan stok lalu pengurangannya tidak bisa disela proses lain (setara `FOR UPDATE`).
- * Melempar error di dalam callback otomatis me-rollback.
+ * Melempar error di dalam callback otomatis me-rollback. Pekerjaan `afterCommit` berjalan setelah commit.
  */
-export function transact<T>(fn: (tx: Tx) => T): Promise<T> {
-	return withRetry(async () => db.transaction((tx) => fn(tx), { behavior: 'immediate' }));
+export async function transact<T>(fn: (tx: Tx) => T): Promise<T> {
+	let queue: (() => void | Promise<void>)[] = [];
+	const result = await withRetry(async () =>
+		db.transaction(
+			(tx) => {
+				queue = []; // percobaan ulang (deadlock/busy) mulai dari antrean kosong
+				commitQueues.set(tx, queue);
+				return fn(tx);
+			},
+			{ behavior: 'immediate' }
+		)
+	);
+	for (const job of queue) void run(job);
+	return result;
 }
