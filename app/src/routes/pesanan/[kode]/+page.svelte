@@ -468,6 +468,12 @@
 					<p class="mt-2 text-sm text-ink">
 						Paket sudah diterima. Terima kasih sudah belanja di Downshit.
 					</p>
+					{#if data.reviewables.some((rp) => !rp.review)}
+						<p class="mt-3 text-sm text-ink">
+							Bagaimana produknya? Bantu pembeli lain dengan memberi ulasan.
+						</p>
+						<a href="#ulasan" class="btn btn-primary btn-tool mt-3">Beri ulasan sekarang</a>
+					{/if}
 				</section>
 			{/if}
 

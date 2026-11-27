@@ -259,6 +259,8 @@ export async function completeOrder(code: string, actor: Actor) {
 			`Pesanan ${o.code} diselesaikan oleh ${actor.role}`,
 			tx
 		);
+		// ajak pelanggan memberi ulasan, baik diselesaikan sendiri maupun otomatis oleh sistem
+		afterCommit(tx, () => notifyOrder(o.id, 'selesai'));
 	});
 }
 

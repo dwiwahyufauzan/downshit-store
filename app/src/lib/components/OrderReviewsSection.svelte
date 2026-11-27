@@ -34,7 +34,7 @@
 						{/if}
 						{#if rp.review.photos.length > 0}
 							<ul class="mt-3 flex flex-wrap gap-2">
-								{#each rp.review.photos as ph (ph.url)}
+								{#each rp.review.photos as ph, i (i)}
 									<li>
 										<a href={ph.url} target="_blank" rel="noopener noreferrer">
 											<img
@@ -73,6 +73,7 @@
 									type="file"
 									accept="image/jpeg,image/png,image/webp"
 									multiple
+									class="block w-full min-w-0 text-xs text-smoke file:mr-4 file:cursor-pointer file:border file:border-ink file:bg-paper file:px-4 file:py-2.5 file:text-xs file:font-semibold file:tracking-[0.12em] file:text-ink file:uppercase hover:file:bg-ink hover:file:text-paper"
 								/>
 								<p class="hint">Maksimal 3 foto (JPG, PNG, atau WEBP).</p>
 							</div>

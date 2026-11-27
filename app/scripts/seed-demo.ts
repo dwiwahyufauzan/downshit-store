@@ -1851,8 +1851,12 @@ async function main() {
 				reviewCount++;
 				if (chance(0.32)) {
 					const n = rint(1, 2);
+					const used = new Set<string>(); // satu ulasan tidak boleh memuat foto yang sama dua kali
 					for (let i = 0; i < n; i++) {
-						insRImg.run(rid, pick(reviewPool), i, iso(tReview));
+						let img = pick(reviewPool);
+						while (used.has(img) && used.size < reviewPool.length) img = pick(reviewPool);
+						used.add(img);
+						insRImg.run(rid, img, i, iso(tReview));
 						photoCount++;
 					}
 				}

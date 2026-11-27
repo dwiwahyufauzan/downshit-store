@@ -8,7 +8,7 @@ import { envVar } from './config';
 import { rupiah, tanggal } from '#lib/utils/format';
 
 /** Kejadian pesanan yang memicu email ke pelanggan. */
-export type OrderEvent = 'dibuat' | 'dibayar' | 'ditolak' | 'dikirim' | 'dibatalkan';
+export type OrderEvent = 'dibuat' | 'dibayar' | 'ditolak' | 'dikirim' | 'selesai' | 'dibatalkan';
 
 const orderUrl = (code: string) => `${(envVar('ORIGIN') ?? '').replace(/\/$/, '')}/pesanan/${code}`;
 
@@ -79,6 +79,10 @@ export async function notifyOrder(orderId: number, event: OrderEvent): Promise<v
 			intro = `Pesananmu sudah dikirim${s?.courier ? ` via ${s.courier}` : ''}${s?.trackingNumber ? `, nomor resi ${s.trackingNumber}` : ''}.`;
 			break;
 		}
+		case 'selesai':
+			subject = `Pesanan ${o.code} selesai, bagikan ulasanmu`;
+			intro = `Pesananmu sudah selesai. Bagaimana produknya? Ceritakan pengalamanmu lewat ulasan (boleh sertakan foto), ulasanmu sangat membantu pembeli lain.\n\nBeri ulasan: ${orderUrl(o.code)}#ulasan`;
+			break;
 		case 'dibatalkan':
 			subject = `Pesanan ${o.code} dibatalkan`;
 			intro = `Pesananmu dibatalkan${o.cancelReason ? `: ${o.cancelReason}` : ''}.`;

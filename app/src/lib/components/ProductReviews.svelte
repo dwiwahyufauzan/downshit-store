@@ -74,7 +74,7 @@
 							{/if}
 							{#if r.photos.length > 0}
 								<ul class="mt-3 flex flex-wrap gap-2">
-									{#each r.photos as ph (ph.url)}
+									{#each r.photos as ph, i (i)}
 										<li>
 											<a href={ph.url} target="_blank" rel="noopener noreferrer">
 												<img

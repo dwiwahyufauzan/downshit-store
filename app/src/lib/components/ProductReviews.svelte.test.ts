@@ -32,6 +32,15 @@ describe('ProductReviews', () => {
 		expect(document.body.textContent).not.toContain('Sebaran rating');
 	});
 
+	it('foto dengan URL sama dalam satu ulasan tetap tampil (tidak memicu each_key_duplicate)', () => {
+		const same = { url: '/uploads/reviews/a.webp', thumbUrl: '/uploads/reviews/a_t.webp' };
+		mount(ProductReviews, {
+			target: document.body,
+			props: { summary: summary(), reviews: [review({ photos: [same, same] })], showAll: true }
+		});
+		expect(document.querySelectorAll('img[alt^="Foto dari"]')).toHaveLength(2);
+	});
+
 	it('ringkasan rata-rata + sebaran, komentar, tanggal WIB, dan foto ulasan', () => {
 		mount(ProductReviews, {
 			target: document.body,

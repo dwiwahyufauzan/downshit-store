@@ -34,7 +34,13 @@ import { passwordResets, sessions, users } from './db/schema';
 import { setMailTransport, type Mail } from './mail';
 import { setWaTransport } from './wa-gateway';
 import { cancelOrder, createOrderFromCart } from './orders';
-import { confirmPayment, rejectPayment, shipOrder, submitPaymentProof } from './order-flow';
+import {
+	completeOrder,
+	confirmPayment,
+	rejectPayment,
+	shipOrder,
+	submitPaymentProof
+} from './order-flow';
 import { isResetTokenValid, requestPasswordReset, resetPasswordWithToken } from './password-reset';
 import { hashPassword, verifyPassword } from './auth';
 import {
@@ -117,6 +123,21 @@ describe('notifikasi email pesanan', () => {
 		expect(outbox.map((m) => m.subject)).toEqual(
 			expect.arrayContaining([expect.stringContaining('dibatalkan')])
 		);
+	});
+
+	it('pesanan selesai mengirim ajakan memberi ulasan, baik oleh pelanggan maupun sistem', async () => {
+		const { code } = await newOrder();
+		await submitPaymentProof(code, buyerId, '/uploads/proofs/a.png');
+		await confirmPayment(code, adminId);
+		await shipOrder(code, adminId, { courier: 'JNE', trackingNumber: 'JNE123456' });
+		await flush();
+		outbox.length = 0;
+
+		await completeOrder(code, { id: buyerId, role: 'konsumen' });
+		await flush();
+		expect(outbox).toHaveLength(1);
+		expect(outbox[0].subject).toContain(`Pesanan ${code} selesai`);
+		expect(outbox[0].text).toContain(`/pesanan/${code}#ulasan`);
 	});
 
 	it('kegagalan kirim tidak menggagalkan pesanan', async () => {

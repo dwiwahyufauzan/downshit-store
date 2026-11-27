@@ -160,7 +160,7 @@
 									{#if !r.isVisible}<span class="badge badge-muted ml-1">Tersembunyi</span>{/if}
 									{#if r.photos.length > 0}
 										<div class="mt-2 flex gap-1.5">
-											{#each r.photos as ph (ph.url)}
+											{#each r.photos as ph, i (i)}
 												<a href={ph.url} target="_blank" rel="noopener noreferrer">
 													<img src={ph.thumbUrl} alt="Foto ulasan" class="h-10 w-10 object-cover" />
 												</a>
